@@ -1,0 +1,14 @@
+{
+  "name": "share",
+  "version": "1.0.0",
+  "description": "Share Claude Code sessions with Moon for live collaboration",
+  "author": {
+    "name": "Kamal",
+    "email": "kamalnrf@gmail.com",
+    "url": "https://github.com/Kamalnrf"
+  },
+  "homepage": "<TODO>",
+  "repository": "<TODO>",
+  "license": "MIT",
+  "keywords": ["session-sharing", "collaboration"]
+}
