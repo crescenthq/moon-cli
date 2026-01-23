@@ -1,23 +1,23 @@
-import { readdir, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-export interface SessionFile {
+export type SessionFile = {
 	path: string;
 	sessionId: string;
 	projectName: string;
 	modifiedAt: Date;
 	size: number;
-}
+};
 
 const CLAUDE_CODE_PROJECTS_PATH = join(homedir(), ".claude", "projects");
 
-export interface SessionFileWithSummary extends SessionFile {
+export type SessionFileWithSummary = SessionFile & {
 	title: string;
 	preview: string;
 	messageCount: number;
 	content: string;
-}
+};
 
 /**
  * Discover Claude Code sessions from ~/.claude/projects/
@@ -93,8 +93,7 @@ export async function findClaudeCodeSessions(): Promise<
  * Read raw JSONL content from a session file
  */
 export async function readSessionContent(path: string): Promise<string> {
-	const file = Bun.file(path);
-	return file.text();
+	return readFile(path, "utf-8");
 }
 
 /**
@@ -124,11 +123,11 @@ function extractTextFromContent(content: unknown): string | null {
 	return null;
 }
 
-interface SessionMetadata {
+type SessionMetadata = {
 	title: string;
 	preview: string;
 	messageCount: number;
-}
+};
 
 const JUNK_PREFIXES = [
 	"```",
@@ -214,11 +213,11 @@ function truncateCleanly(text: string, maxLength: number): string {
 export function extractSessionMetadata(content: string): SessionMetadata {
 	const lines = content.trim().split("\n");
 
-	interface ParsedEntry {
+	type ParsedEntry = {
 		type?: string;
 		isMeta?: boolean;
 		message?: { content?: unknown };
-	}
+	};
 
 	const candidates: Array<{ text: string; score: number; source: string }> = [];
 	let messageCount = 0;
@@ -269,12 +268,6 @@ export function extractSessionMetadata(content: string): SessionMetadata {
 	};
 }
 
-/** @deprecated Use extractSessionMetadata instead */
-export function getSessionSummary(content: string, maxLength = 50): string {
-	const { title } = extractSessionMetadata(content);
-	return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
-}
-
 /**
  * Format relative time for display (e.g., "2 min ago", "1 hour ago")
  */
@@ -294,13 +287,19 @@ export function formatRelativeTime(date: Date): string {
 }
 
 /**
+ * Format file size for display (e.g., "1.2 MB", "256 KB")
+ */
+export function formatFileSize(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/**
  * Format project name for display
  * Converts encoded paths like "-Users-kamal-workspace-moon" to "moon"
- * or "-Users-kamal-workspace-claude-plugins-packages-cli" to "claude-plugins/packages/cli"
  */
 export function formatProjectName(encodedName: string): string {
-	// Decode the path: "-Users-kamal-workspace-moon" -> "/Users/kamal/workspace/moon"
-	// The encoding replaces "/" with "-" and the path starts with "-"
 	const decoded = encodedName.replace(/^-/, "/").replace(/-/g, "/");
 
 	// Find common base paths to strip

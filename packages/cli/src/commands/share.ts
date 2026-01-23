@@ -11,11 +11,11 @@ import { defineCommand } from "citty";
 import pc from "picocolors";
 import {
 	findClaudeCodeSessions,
+	formatFileSize,
 	formatProjectName,
 	formatRelativeTime,
 } from "../utils/session-files";
-
-const API_URL = "http://localhost:8787";
+import { syncSession } from "../utils/sync-client";
 
 type Agent = "claude-code";
 
@@ -40,6 +40,11 @@ export const shareCommand = defineCommand({
 			description: "Custom title for the shared session",
 			required: false,
 		},
+		displaySize: {
+			type: "boolean",
+			description: "Displays session file sizes",
+			required: false,
+		},
 	},
 	run: async ({ args }) => {
 		intro(pc.bgCyan(pc.black(" Moon CLI ")));
@@ -47,6 +52,7 @@ export const shareCommand = defineCommand({
 		// Default to claude-code, support other agents in the future
 		const agent: Agent = (args.agent as Agent) || "claude-code";
 
+		let sessionPath: string;
 		let sessionContent: string;
 		let extractedTitle: string;
 
@@ -73,10 +79,16 @@ export const shareCommand = defineCommand({
 					const selectedPath = await select({
 						message: "Select a session to share",
 						maxItems: 10,
-						options: sessions.slice(0, 50).map((session) => ({
-							value: session.path,
-							label: ` ${pc.cyan(formatProjectName(session.projectName))}  ${session.title}  ${pc.dim(formatRelativeTime(session.modifiedAt))}`,
-						})),
+						options: sessions.slice(0, 50).map((session) => {
+							const fileSize = args.displaySize
+								? formatFileSize(session.size)
+								: "";
+
+							return {
+								value: session.path,
+								label: ` ${pc.cyan(formatProjectName(session.projectName))} ${session.title} ${fileSize} ${pc.dim(formatRelativeTime(session.modifiedAt))}`,
+							};
+						}),
 					});
 
 					if (isCancel(selectedPath)) {
@@ -92,6 +104,7 @@ export const shareCommand = defineCommand({
 					selectedSession = found;
 				}
 
+				sessionPath = selectedSession.path;
 				sessionContent = selectedSession.content;
 				extractedTitle = selectedSession.title;
 				break;
@@ -140,39 +153,23 @@ export const shareCommand = defineCommand({
 			process.exit(0);
 		}
 
-		// Upload to backend
+		// Sync session with chunked upload
 		const s = spinner();
-		s.start("Uploading session...");
+		s.start("Syncing session...");
 
 		try {
-			const sessionId = crypto.randomUUID();
-
-			const response = await fetch(`${API_URL}/sessions`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					sessionId,
-					title,
-					visibility,
-					content: sessionContent,
-				}),
+			const result = await syncSession(agent, sessionPath, sessionContent, {
+				title,
+				visibility: visibility as string,
 			});
 
-			if (!response.ok) {
-				const error = await response.text();
-				throw new Error(`Upload failed: ${error}`);
-			}
+			s.stop("Session synced!");
 
-			s.stop("Session uploaded!");
-
-			const sessionUrl = `${API_URL}/sessions/${sessionId}`;
 			outro(
-				`${pc.green("✓")} Session shared!\n\n  ${pc.cyan(sessionUrl)}\n\n  ${pc.dim("Copy this link to share with others")}`,
+				`${pc.green("✓")} Session shared!\n\n  ${pc.cyan(result.url)}\n\n  ${pc.dim("Copy this link to share with others")}`,
 			);
 		} catch (error) {
-			s.stop("Upload failed");
+			s.stop("Sync failed");
 			cancel(
 				`Error: ${error instanceof Error ? error.message : "Unknown error"}`,
 			);
