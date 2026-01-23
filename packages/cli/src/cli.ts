@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from "citty";
 import pkg from "../package.json" with { type: "json" };
+import { configCommand } from "./commands/config";
 import { loginCommand } from "./commands/login";
 import { shareCommand } from "./commands/share";
 
@@ -13,6 +14,7 @@ const mainCommand = defineCommand({
 	subCommands: {
 		share: shareCommand,
 		login: loginCommand,
+		config: configCommand,
 	},
 });
 

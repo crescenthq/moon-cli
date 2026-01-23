@@ -2,6 +2,7 @@ import {
 	cancel,
 	intro,
 	isCancel,
+	note,
 	outro,
 	select,
 	spinner,
@@ -16,8 +17,7 @@ import {
 	formatRelativeTime,
 } from "../utils/session-files";
 import { syncSession } from "../utils/sync-client";
-
-type Agent = "claude-code";
+import { type Agent, getSyncStateBySessionId } from "../utils/sync-state";
 
 export const shareCommand = defineCommand({
 	meta: {
@@ -26,8 +26,10 @@ export const shareCommand = defineCommand({
 	},
 	args: {
 		agent: {
-			type: "string",
+			type: "enum",
 			description: "The agent you're sharing your session from",
+			options: ["claude-code"],
+			default: "claude-code",
 			required: false,
 		},
 		sessionId: {
@@ -45,6 +47,60 @@ export const shareCommand = defineCommand({
 			description: "Displays session file sizes",
 			required: false,
 		},
+		json: {
+			type: "boolean",
+			description: "Output JSON for machine parsing",
+			required: false,
+		},
+	},
+	subCommands: {
+		status: defineCommand({
+			meta: {
+				name: "share",
+				description: "Check if session is currently being shared",
+			},
+			args: {
+				sessionId: {
+					type: "string",
+					description: "The session ID to share",
+					required: true,
+				},
+				agent: {
+					// TODO: Look into why we can't pass type enum here. It is breaking type inference
+					type: "string",
+					description: "The agent you're sharing your session from",
+					options: ["claude-code"],
+					default: "claude-code",
+					required: false,
+				},
+				json: {
+					type: "boolean",
+					description: "Output JSON for machine parsing",
+					required: false,
+				},
+			},
+			run: async ({ args }) => {
+				const session = await getSyncStateBySessionId(
+					args.agent as Agent,
+					args.sessionId,
+				);
+
+				const result = {
+					sharing: session?.isSharing ?? false,
+					url: session?.url,
+				};
+
+				if (args.json) {
+					console.log(JSON.stringify(result));
+					process.exit(0);
+				}
+
+				intro(pc.bgCyan(pc.black(" Moon - Session Status ")));
+				note(`Sharing: ${result.url}`);
+
+				process.exit(0);
+			},
+		}),
 	},
 	run: async ({ args }) => {
 		intro(pc.bgCyan(pc.black(" Moon CLI ")));

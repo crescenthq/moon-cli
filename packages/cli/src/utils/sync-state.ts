@@ -5,11 +5,16 @@ import { join } from "node:path";
 const CONFIG_DIR = join(homedir(), ".config", "moon");
 const SYNC_STATE_FILE = join(CONFIG_DIR, "sync-state.json");
 
+export type Agent = "claude-code";
+
 export type SessionSyncState = {
 	sessionId: string;
-	agent: string;
+	agent: Agent;
 	filePath: string;
 	updatedAt: string;
+	// Sharing tracking fields
+	isSharing?: boolean;
+	url?: string;
 };
 
 type SyncStateStore = {
@@ -17,7 +22,7 @@ type SyncStateStore = {
 	sessions: Record<string, SessionSyncState>;
 };
 
-function getSessionKey(agent: string, filePath: string): string {
+function getSessionKey(agent: Agent, filePath: string): string {
 	return `${agent}:${filePath}`;
 }
 
@@ -40,18 +45,26 @@ async function saveSyncState(state: SyncStateStore): Promise<void> {
 }
 
 export async function getSessionState(
-	agent: string,
+	agent: Agent,
 	filePath: string,
 ): Promise<SessionSyncState | null> {
 	const state = await loadSyncState();
 	return state.sessions[getSessionKey(agent, filePath)] || null;
 }
 
-export async function updateSessionState(
-	agent: string,
-	filePath: string,
-	sessionId: string,
-): Promise<SessionSyncState> {
+export async function updateSessionState({
+	agent,
+	filePath,
+	sessionId,
+	url,
+	isSharing,
+}: {
+	agent: Agent;
+	filePath: string;
+	sessionId: string;
+	url?: string;
+	isSharing?: boolean;
+}): Promise<SessionSyncState> {
 	const state = await loadSyncState();
 	const key = getSessionKey(agent, filePath);
 
@@ -60,8 +73,25 @@ export async function updateSessionState(
 		agent,
 		filePath,
 		updatedAt: new Date().toISOString(),
+		...(url ? { url } : {}),
+		...(isSharing ? { isSharing } : {}),
 	};
 
 	await saveSyncState(state);
 	return state.sessions[key];
+}
+
+export async function getSyncStateBySessionId(
+	agent: Agent,
+	sessionId: string,
+): Promise<SessionSyncState | null> {
+	const state = await loadSyncState();
+
+	// Look through all sessions for this agent to find one matching the session ID
+	for (const session of Object.values(state.sessions)) {
+		if (session.agent === agent && session.sessionId === sessionId) {
+			return session;
+		}
+	}
+	return null;
 }

@@ -130,7 +130,7 @@ async function syncContentChunk({
 }
 
 export async function syncSession(
-	agent: string,
+	agent: "claude-code",
 	filePath: string,
 	content: string,
 	metadata: { title?: string; visibility?: string },
@@ -164,15 +164,22 @@ export async function syncSession(
 
 	// Send full content - server handles parsing and deduplication
 	const result = await syncContent(sessionId, content);
+	const url = `${API_URL}/sessions/${sessionId}`;
 
 	onProgress?.({ phase: "done" });
 
-	await updateSessionState(agent, filePath, sessionId);
+	await updateSessionState({
+		agent,
+		filePath,
+		sessionId,
+		url,
+		isSharing: true,
+	});
 
 	return {
 		success: true,
 		sessionId,
-		url: `${API_URL}/sessions/${sessionId}`,
+		url,
 		newMessages: result.newMessages,
 		totalMessages: result.totalMessages,
 		isNew,
