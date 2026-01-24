@@ -2,14 +2,6 @@
 
 Claude Code plugin for automatic session sharing with Moon.
 
-## Installation
-
-Copy this plugin to your Claude Code plugins directory:
-
-```bash
-cp -r packages/claude-code-plugin ~/.claude/plugins/moon-share
-```
-
 ## Features
 
 - **Automatic syncing** via Claude Code hooks
@@ -49,10 +41,8 @@ Type `/share` in Claude Code to manually share the current session.
 
 ## Development
 
-Set `MOON_CLI` to use a local CLI build:
-
 ```bash
-export MOON_CLI="bun run /path/to/packages/cli/src/cli.ts"
+claude --plugin-dir ./packages/claude-code-plugin/
 ```
 
 Test hooks:

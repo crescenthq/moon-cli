@@ -1,14 +1,14 @@
 {
-	"name": "share",
-	"version": "1.0.0",
-	"description": "Share Claude Code sessions with Moon for live collaboration",
-	"author": {
-		"name": "Kamal",
-		"email": "kamalnrf@gmail.com",
-		"url": "https://github.com/Kamalnrf"
-	},
-	"homepage": "https://mooncomputer.io",
-	"repository": "https://github.com/crescenthq/moon-cli/tree/main",
-	"license": "MIT",
-	"keywords": ["session-sharing", "collaboration"]
+  "name": "moon",
+  "version": "1.0.0",
+  "description": "Share Claude Code sessions with Moon for live collaboration",
+  "author": {
+    "name": "Kamal",
+    "email": "kamalnrf@gmail.com",
+    "url": "https://github.com/Kamalnrf"
+  },
+  "homepage": "https://mooncomputer.io",
+  "repository": "https://github.com/crescenthq/moon-cli/tree/main",
+  "license": "MIT",
+  "keywords": ["session-sharing", "collaboration"]
 }
