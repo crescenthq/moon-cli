@@ -1,9 +1,9 @@
 {
-  "name": "@moon/plugin-claude-code",
-  "version": "1.0.0",
-  "description": "Moon session sharing plugin for Claude Code",
-  "license": "MIT",
-  "scripts": {
-    "test": "bash scripts/test-hooks.sh"
-  }
+	"name": "@moon/plugin-claude-code",
+	"version": "1.0.0",
+	"description": "Moon session sharing plugin for Claude Code",
+	"license": "MIT",
+	"scripts": {
+		"test": "bash scripts/test-hooks.sh"
+	}
 }

@@ -21,10 +21,7 @@ type RequestOptions = {
 
 const RETRY_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
 
-async function doFetch<T>(
-	path: string,
-	options: RequestOptions,
-): Promise<T> {
+async function doFetch<T>(path: string, options: RequestOptions): Promise<T> {
 	const { method = "GET", body, headers = {} } = options;
 
 	const requestHeaders: Record<string, string> = { ...headers };

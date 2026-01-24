@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-const { spawn, execSync } = require("child_process");
-const { mkdirSync, writeFileSync, rmSync, existsSync } = require("fs");
-const path = require("path");
-const os = require("os");
+const { spawn, execSync } = require("node:child_process");
+const { mkdirSync, writeFileSync, rmSync, existsSync } = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
 
 const WORKSPACE_ROOT = path.resolve(__dirname, "../../..");
 const CLI_PACKAGE = path.join(WORKSPACE_ROOT, "packages/cli");
@@ -124,7 +124,7 @@ async function runHook(scriptName, sessionId) {
 				stdout: stdout.trim(),
 				stderr: stderr.trim(),
 				// Parse debug output for assertions
-				logs: stdout.split("\n").filter(l => l.includes("[hook:")),
+				logs: stdout.split("\n").filter((l) => l.includes("[hook:")),
 			});
 		});
 	});
@@ -142,15 +142,15 @@ async function runTestScenario(name, description, setup, assertions) {
 	console.log();
 
 	const context = await setup();
-	
+
 	try {
 		const results = await assertions(context);
-		const passed = results.every(r => r.passed);
-		
+		const passed = results.every((r) => r.passed);
+
 		for (const result of results) {
 			printResult(result.passed, result.description);
 		}
-		
+
 		return passed;
 	} finally {
 		// Cleanup session file if created
@@ -174,145 +174,167 @@ async function main() {
 		// ═══════════════════════════════════════════════════════════════
 		// Scenario 1: New session with sharing mode = "off"
 		// ═══════════════════════════════════════════════════════════════
-		results.push(await runTestScenario(
-			"New session (mode=off)",
-			"When sharing is off, hooks should not start sharing",
-			async () => {
-				const sessionId = `test-off-${Date.now()}`;
-				const sessionFile = createTestSession(sessionId, "Test session with sharing off");
-				setConfig("sharing.mode", "off");
-				return { sessionId, sessionFile };
-			},
-			async ({ sessionId }) => {
-				const result = await runHook("session-start.js", sessionId);
-				return [
-					{
-						passed: result.code === 0,
-						description: "Hook exits successfully",
-					},
-					{
-						passed: result.stdout.includes("Sharing disabled"),
-						description: "Logs 'Sharing disabled'",
-					},
-					{
-						passed: !result.stdout.includes("Auto-sharing:"),
-						description: "Does not auto-share",
-					},
-				];
-			}
-		));
+		results.push(
+			await runTestScenario(
+				"New session (mode=off)",
+				"When sharing is off, hooks should not start sharing",
+				async () => {
+					const sessionId = `test-off-${Date.now()}`;
+					const sessionFile = createTestSession(
+						sessionId,
+						"Test session with sharing off",
+					);
+					setConfig("sharing.mode", "off");
+					return { sessionId, sessionFile };
+				},
+				async ({ sessionId }) => {
+					const result = await runHook("session-start.js", sessionId);
+					return [
+						{
+							passed: result.code === 0,
+							description: "Hook exits successfully",
+						},
+						{
+							passed: result.stdout.includes("Sharing disabled"),
+							description: "Logs 'Sharing disabled'",
+						},
+						{
+							passed: !result.stdout.includes("Auto-sharing:"),
+							description: "Does not auto-share",
+						},
+					];
+				},
+			),
+		);
 
 		// ═══════════════════════════════════════════════════════════════
-		// Scenario 2: New session with sharing mode = "prompt"  
+		// Scenario 2: New session with sharing mode = "prompt"
 		// ═══════════════════════════════════════════════════════════════
-		results.push(await runTestScenario(
-			"New session (mode=prompt)",
-			"When mode is prompt, should show hint message",
-			async () => {
-				const sessionId = `test-prompt-${Date.now()}`;
-				const sessionFile = createTestSession(sessionId, "Test session with prompt mode");
-				setConfig("sharing.mode", "prompt");
-				return { sessionId, sessionFile };
-			},
-			async ({ sessionId }) => {
-				const result = await runHook("session-start.js", sessionId);
-				return [
-					{
-						passed: result.code === 0,
-						description: "Hook exits successfully",
-					},
-					{
-						passed: result.stdout.includes("Prompt mode"),
-						description: "Detects prompt mode",
-					},
-					{
-						passed: result.stdout.includes("/share"),
-						description: "Shows /share hint",
-					},
-				];
-			}
-		));
+		results.push(
+			await runTestScenario(
+				"New session (mode=prompt)",
+				"When mode is prompt, should show hint message",
+				async () => {
+					const sessionId = `test-prompt-${Date.now()}`;
+					const sessionFile = createTestSession(
+						sessionId,
+						"Test session with prompt mode",
+					);
+					setConfig("sharing.mode", "prompt");
+					return { sessionId, sessionFile };
+				},
+				async ({ sessionId }) => {
+					const result = await runHook("session-start.js", sessionId);
+					return [
+						{
+							passed: result.code === 0,
+							description: "Hook exits successfully",
+						},
+						{
+							passed: result.stdout.includes("Prompt mode"),
+							description: "Detects prompt mode",
+						},
+						{
+							passed: result.stdout.includes("/share"),
+							description: "Shows /share hint",
+						},
+					];
+				},
+			),
+		);
 
 		// ═══════════════════════════════════════════════════════════════
 		// Scenario 3: New session with sharing mode = "auto"
 		// ═══════════════════════════════════════════════════════════════
-		results.push(await runTestScenario(
-			"New session (mode=auto)",
-			"When mode is auto, should attempt to start sharing",
-			async () => {
-				const sessionId = `test-auto-${Date.now()}`;
-				const sessionFile = createTestSession(sessionId, "Test session with auto mode");
-				setConfig("sharing.mode", "auto");
-				return { sessionId, sessionFile };
-			},
-			async ({ sessionId }) => {
-				const result = await runHook("session-start.js", sessionId);
-				return [
-					{
-						passed: result.code === 0,
-						description: "Hook exits successfully",
-					},
-					{
-						passed: result.stdout.includes("Auto-share mode"),
-						description: "Detects auto mode",
-					},
-				];
-			}
-		));
+		results.push(
+			await runTestScenario(
+				"New session (mode=auto)",
+				"When mode is auto, should attempt to start sharing",
+				async () => {
+					const sessionId = `test-auto-${Date.now()}`;
+					const sessionFile = createTestSession(
+						sessionId,
+						"Test session with auto mode",
+					);
+					setConfig("sharing.mode", "auto");
+					return { sessionId, sessionFile };
+				},
+				async ({ sessionId }) => {
+					const result = await runHook("session-start.js", sessionId);
+					return [
+						{
+							passed: result.code === 0,
+							description: "Hook exits successfully",
+						},
+						{
+							passed: result.stdout.includes("Auto-share mode"),
+							description: "Detects auto mode",
+						},
+					];
+				},
+			),
+		);
 
 		// ═══════════════════════════════════════════════════════════════
 		// Scenario 4: prompt-submit with mode = off
 		// ═══════════════════════════════════════════════════════════════
-		results.push(await runTestScenario(
-			"Prompt submit (mode=off)",
-			"prompt-submit hook should not sync when mode is off",
-			async () => {
-				const sessionId = `test-submit-off-${Date.now()}`;
-				const sessionFile = createTestSession(sessionId, "Test prompt submit");
-				setConfig("sharing.mode", "off");
-				return { sessionId, sessionFile };
-			},
-			async ({ sessionId }) => {
-				const result = await runHook("prompt-submit.js", sessionId);
-				return [
-					{
-						passed: result.code === 0,
-						description: "Hook exits successfully",
-					},
-					{
-						passed: result.stdout.includes("Sharing disabled"),
-						description: "Does not sync",
-					},
-				];
-			}
-		));
+		results.push(
+			await runTestScenario(
+				"Prompt submit (mode=off)",
+				"prompt-submit hook should not sync when mode is off",
+				async () => {
+					const sessionId = `test-submit-off-${Date.now()}`;
+					const sessionFile = createTestSession(
+						sessionId,
+						"Test prompt submit",
+					);
+					setConfig("sharing.mode", "off");
+					return { sessionId, sessionFile };
+				},
+				async ({ sessionId }) => {
+					const result = await runHook("prompt-submit.js", sessionId);
+					return [
+						{
+							passed: result.code === 0,
+							description: "Hook exits successfully",
+						},
+						{
+							passed: result.stdout.includes("Sharing disabled"),
+							description: "Does not sync",
+						},
+					];
+				},
+			),
+		);
 
 		// ═══════════════════════════════════════════════════════════════
 		// Scenario 5: session-end with no active sharing
 		// ═══════════════════════════════════════════════════════════════
-		results.push(await runTestScenario(
-			"Session end (not sharing)",
-			"session-end hook should skip sync when not sharing",
-			async () => {
-				const sessionId = `test-end-${Date.now()}`;
-				const sessionFile = createTestSession(sessionId, "Test session end");
-				setConfig("sharing.mode", "off");
-				return { sessionId, sessionFile };
-			},
-			async ({ sessionId }) => {
-				const result = await runHook("session-end.js", sessionId);
-				return [
-					{
-						passed: result.code === 0,
-						description: "Hook exits successfully",
-					},
-					{
-						passed: result.stdout.includes("Not sharing, skipping"),
-						description: "Skips sync when not sharing",
-					},
-				];
-			}
-		));
+		results.push(
+			await runTestScenario(
+				"Session end (not sharing)",
+				"session-end hook should skip sync when not sharing",
+				async () => {
+					const sessionId = `test-end-${Date.now()}`;
+					const sessionFile = createTestSession(sessionId, "Test session end");
+					setConfig("sharing.mode", "off");
+					return { sessionId, sessionFile };
+				},
+				async ({ sessionId }) => {
+					const result = await runHook("session-end.js", sessionId);
+					return [
+						{
+							passed: result.code === 0,
+							description: "Hook exits successfully",
+						},
+						{
+							passed: result.stdout.includes("Not sharing, skipping"),
+							description: "Skips sync when not sharing",
+						},
+					];
+				},
+			),
+		);
 
 		// ═══════════════════════════════════════════════════════════════
 		// Scenario 6: Missing session_id
@@ -322,7 +344,11 @@ async function main() {
 		console.log(`   Hooks should handle missing session_id gracefully`);
 		console.log();
 
-		for (const hook of ["session-start.js", "prompt-submit.js", "session-end.js"]) {
+		for (const hook of [
+			"session-start.js",
+			"prompt-submit.js",
+			"session-end.js",
+		]) {
 			const result = await new Promise((resolve) => {
 				const child = spawn("node", [path.join(__dirname, hook)], {
 					stdio: ["pipe", "pipe", "pipe"],
@@ -330,7 +356,9 @@ async function main() {
 				});
 
 				let stdout = "";
-				child.stdout.on("data", (d) => stdout += d.toString());
+				child.stdout.on("data", (d) => {
+					stdout += d.toString();
+				});
 				child.stdin.write("{}");
 				child.stdin.end();
 				child.on("close", (code) => resolve({ code, stdout }));
@@ -339,7 +367,6 @@ async function main() {
 			printResult(result.code === 0, `${hook} handles missing session_id`);
 		}
 		results.push(true); // All passed if we got here
-
 	} finally {
 		// Restore original config
 		if (originalMode) {
@@ -359,7 +386,7 @@ async function main() {
 	}
 
 	const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-	const allPassed = results.every(r => r === true);
+	const allPassed = results.every((r) => r === true);
 
 	console.log();
 	console.log("═".repeat(55));

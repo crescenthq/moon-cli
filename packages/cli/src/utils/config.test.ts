@@ -1,8 +1,8 @@
-import { test, expect, beforeEach } from "bun:test";
-import { loadConfig, setConfigValue, getConfigValue } from "./config";
+import { beforeEach, expect, test } from "bun:test";
 import { unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { getConfigValue, loadConfig, setConfigValue } from "./config";
 
 const CONFIG_FILE = join(homedir(), ".config", "moon", "config.json");
 
@@ -28,7 +28,9 @@ test("config rejects invalid mode", async () => {
 });
 
 test("config rejects unknown key", async () => {
-	expect(setConfigValue("unknown.key", "value")).rejects.toThrow("Unknown config key");
+	expect(setConfigValue("unknown.key", "value")).rejects.toThrow(
+		"Unknown config key",
+	);
 });
 
 test("getConfigValue returns undefined for unknown key", async () => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { execSync, spawn } = require("child_process");
+const { execSync, spawn } = require("node:child_process");
 
 const MOON_CLI = process.env.MOON_CLI || "npx --yes @moon/cli";
 const DEBUG = process.env.MOON_DEBUG === "1";
@@ -20,7 +20,9 @@ function spawnMoon(args, options = {}) {
 // Read stdin
 let input = "";
 process.stdin.setEncoding("utf8");
-process.stdin.on("data", (chunk) => (input += chunk));
+process.stdin.on("data", (chunk) => {
+	input += chunk;
+});
 process.stdin.on("end", async () => {
 	try {
 		await main(JSON.parse(input || "{}"));
