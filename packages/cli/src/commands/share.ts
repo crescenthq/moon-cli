@@ -42,6 +42,12 @@ export const shareCommand = defineCommand({
 			description: "Custom title for the shared session",
 			required: false,
 		},
+		visibility: {
+			type: "string",
+			description:
+				"Visibility of the shared session (public, unlisted, private)",
+			required: false,
+		},
 		displaySize: {
 			type: "boolean",
 			description: "Displays session file sizes",
@@ -49,20 +55,25 @@ export const shareCommand = defineCommand({
 		},
 		json: {
 			type: "boolean",
-			description: "Output JSON for machine parsing",
+			description: "Output JSON for machine parsing (implies non-interactive)",
+			required: false,
+		},
+		"non-interactive": {
+			type: "boolean",
+			description: "Run without prompts (for scripts/hooks)",
 			required: false,
 		},
 	},
 	subCommands: {
 		status: defineCommand({
 			meta: {
-				name: "share",
+				name: "status",
 				description: "Check if session is currently being shared",
 			},
 			args: {
 				sessionId: {
-					type: "string",
-					description: "The session ID to share",
+					type: "positional",
+					description: "The session ID to check",
 					required: true,
 				},
 				agent: {
@@ -78,11 +89,18 @@ export const shareCommand = defineCommand({
 					description: "Output JSON for machine parsing",
 					required: false,
 				},
+				"non-interactive": {
+					type: "boolean",
+					description: "Run without prompts (for scripts/hooks)",
+					required: false,
+				},
 			},
 			run: async ({ args }) => {
+				const isNonInteractive = args["non-interactive"] || args.json;
+
 				const session = await getSyncStateBySessionId(
 					args.agent as Agent,
-					args.sessionId,
+					args.sessionId as string,
 				);
 
 				const result = {
@@ -95,15 +113,40 @@ export const shareCommand = defineCommand({
 					process.exit(0);
 				}
 
+				if (isNonInteractive) {
+					// Plain text output for scripts
+					console.log(result.sharing ? result.url : "");
+					process.exit(0);
+				}
+
 				intro(pc.bgCyan(pc.black(" Moon - Session Status ")));
-				note(`Sharing: ${result.url}`);
+				if (result.sharing) {
+					note(`Sharing: ${result.url}`);
+				} else {
+					note("Not sharing");
+				}
 
 				process.exit(0);
 			},
 		}),
 	},
 	run: async ({ args }) => {
-		intro(pc.bgCyan(pc.black(" Moon CLI ")));
+		const isJson = args.json;
+		const isNonInteractive = args["non-interactive"] || isJson;
+
+		const exitWithError = (message: string): never => {
+			if (isJson) {
+				console.log(JSON.stringify({ error: message }));
+			} else {
+				cancel(message);
+			}
+			process.exit(1);
+		};
+
+		// Only show intro in interactive mode
+		if (!isNonInteractive) {
+			intro(pc.bgCyan(pc.black(" Moon CLI ")));
+		}
 
 		// Default to claude-code, support other agents in the future
 		const agent: Agent = (args.agent as Agent) || "claude-code";
@@ -117,8 +160,8 @@ export const shareCommand = defineCommand({
 				const sessions = await findClaudeCodeSessions();
 
 				if (sessions.length === 0) {
-					cancel("No Claude Code sessions found in ~/.claude/projects/");
-					process.exit(1);
+					exitWithError("No Claude Code sessions found in ~/.claude/projects/");
+					return;
 				}
 
 				let selectedSession: (typeof sessions)[number];
@@ -127,10 +170,18 @@ export const shareCommand = defineCommand({
 				if (args.sessionId) {
 					const session = sessions.find((s) => s.sessionId === args.sessionId);
 					if (!session) {
-						cancel(`Session "${args.sessionId}" not found`);
-						process.exit(1);
+						exitWithError(`Session "${args.sessionId}" not found`);
+						return;
 					}
 					selectedSession = session;
+				} else if (isNonInteractive) {
+					// In non-interactive mode if a session is not passed we use most recent session
+					if (!sessions[0]) {
+						exitWithError(`Session not found`);
+						return;
+					}
+
+					selectedSession = sessions[0];
 				} else {
 					const selectedPath = await select({
 						message: "Select a session to share",
@@ -154,8 +205,8 @@ export const shareCommand = defineCommand({
 
 					const found = sessions.find((s) => s.path === selectedPath);
 					if (!found) {
-						cancel("Session not found");
-						process.exit(1);
+						exitWithError("Session not found");
+						return;
 					}
 					selectedSession = found;
 				}
@@ -167,14 +218,17 @@ export const shareCommand = defineCommand({
 			}
 
 			default:
-				cancel(`Unsupported agent: ${agent}`);
-				process.exit(1);
+				exitWithError(`Unsupported agent: ${agent}`);
+				return;
 		}
 
-		// Allow user to set custom title
+		// Determine title
 		let title: string;
 		if (args.title) {
 			title = args.title;
+		} else if (isNonInteractive) {
+			// In non-interactive mode, use extracted title
+			title = extractedTitle;
 		} else {
 			const customTitle = await text({
 				message: "Title for your session",
@@ -190,45 +244,74 @@ export const shareCommand = defineCommand({
 			title = customTitle || extractedTitle;
 		}
 
-		// Prompt for visibility
-		const visibility = await select({
-			message: "Who can view this session?",
-			options: [
-				{ value: "public", label: "Public", hint: "Anyone with the link" },
-				{
-					value: "unlisted",
-					label: "Unlisted",
-					hint: "Only people with the link",
-				},
-				{ value: "private", label: "Private", hint: "Only you" },
-			],
-		});
+		// Determine visibility
+		let visibility: string;
+		if (args.visibility) {
+			visibility = args.visibility;
+		} else if (isNonInteractive) {
+			// In non-interactive mode, default to unlisted
+			visibility = "unlisted";
+		} else {
+			const selectedVisibility = await select({
+				message: "Who can view this session?",
+				options: [
+					{ value: "public", label: "Public", hint: "Anyone with the link" },
+					{
+						value: "unlisted",
+						label: "Unlisted",
+						hint: "Only people with the link",
+					},
+					{ value: "private", label: "Private", hint: "Only you" },
+				],
+			});
 
-		if (isCancel(visibility)) {
-			cancel("Operation cancelled");
-			process.exit(0);
+			if (isCancel(selectedVisibility)) {
+				cancel("Operation cancelled");
+				process.exit(0);
+			}
+			visibility = selectedVisibility as string;
 		}
 
 		// Sync session with chunked upload
-		const s = spinner();
-		s.start("Syncing session...");
+		const s = isNonInteractive ? null : spinner();
+		s?.start("Syncing session...");
 
 		try {
 			const result = await syncSession(agent, sessionPath, sessionContent, {
 				title,
-				visibility: visibility as string,
+				visibility,
 			});
 
-			s.stop("Session synced!");
-
-			outro(
-				`${pc.green("✓")} Session shared!\n\n  ${pc.cyan(result.url)}\n\n  ${pc.dim("Copy this link to share with others")}`,
-			);
+			if (isJson) {
+				console.log(
+					JSON.stringify({
+						success: true,
+						sessionId: result.sessionId,
+						url: result.url,
+						isNew: result.isNew,
+						newMessages: result.newMessages,
+						totalMessages: result.totalMessages,
+					}),
+				);
+			} else {
+				s?.stop("Session synced!");
+				outro(
+					`${pc.green("✓")} Session shared!\n\n  ${pc.cyan(result.url)}\n\n  ${pc.dim("Copy this link to share with others")}`,
+				);
+			}
 		} catch (error) {
-			s.stop("Sync failed");
-			cancel(
-				`Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-			);
+			if (isJson) {
+				console.log(
+					JSON.stringify({
+						error: error instanceof Error ? error.message : "Unknown error",
+					}),
+				);
+			} else {
+				s?.stop("Sync failed");
+				cancel(
+					`Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
 			process.exit(1);
 		}
 	},
