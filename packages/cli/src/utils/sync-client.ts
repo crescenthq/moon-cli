@@ -1,5 +1,7 @@
-import { API_URL, FetchError, fetch } from "./api";
+import { FetchError, fetch } from "./api";
 import { getSessionState, updateSessionState } from "./sync-state";
+
+const APP_BASE_URL = "http://mooncomputer.io";
 
 export type SyncResult = {
 	success: boolean;
@@ -164,7 +166,7 @@ export async function syncSession(
 
 	// Send full content - server handles parsing and deduplication
 	const result = await syncContent(sessionId, content);
-	const url = `${API_URL}/sessions/${sessionId}`;
+	const url = `${APP_BASE_URL}/sessions/${sessionId}`;
 
 	onProgress?.({ phase: "done" });
 

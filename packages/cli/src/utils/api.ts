@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8787";
+const API_URL = "http://mooncomputer.io/api";
 
 export class FetchError extends Error {
 	constructor(
