@@ -1,111 +1,86 @@
+# Moon
+
+Session sharing platform for Claude Code. Syncs conversations to the cloud with shareable URLs.
+
+## Project Structure
+
+```
+packages/
+├── cli/                  # @moon/cli - Command-line tool
+├── shared/               # @moon/shared - Shared types and constants
+├── claude-code-plugin/   # @moon/plugin-claude-code - Claude Code integration
+└── worker/               # Backend API (Cloudflare Workers)
+```
+
+## Commands
+
+```bash
+# Development
+bun install              # Install dependencies
+bun run dev              # Run CLI locally (in packages/cli)
+bun run format           # Format code
+bun run lint             # Lint code
+bun run check            # Run biome check
+
+# CLI (from packages/cli)
+bun run dev share        # Share a session
+bun run dev config get sharing.mode
+bun run dev config set sharing.mode auto
+```
+
+## CLI Architecture
+
+- **citty** for command routing
+- **@clack/prompts** for interactive UI
+- **picocolors** for terminal colors
+
+Commands: `share`, `login`, `config`
+
+## Key Files
+
+| File                                      | Purpose                       |
+| ----------------------------------------- | ----------------------------- |
+| `packages/cli/src/cli.ts`                 | CLI entrypoint                |
+| `packages/cli/src/commands/share.ts`      | Share command                 |
+| `packages/cli/src/utils/sync-client.ts`   | API client                    |
+| `packages/cli/src/utils/sync-state.ts`    | Local state management        |
+| `packages/cli/src/utils/config.ts`        | User config                   |
+| `packages/cli/src/utils/session-files.ts` | Claude Code session discovery |
+
+## User Data
+
+Stored in `~/.config/moon/`:
+
+- `config.json` — Preferences (sharing.mode: off|prompt|auto)
+- `sync-state.json` — Session sync tracking
+
 ---
-description: Use Bun instead of Node.js, npm, pnpm, or vite.
-globs: "*.ts, *.tsx, *.html, *.css, *.js, *.jsx, package.json"
-alwaysApply: false
----
 
-Default to using Bun instead of Node.js.
+## Bun
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Bun automatically loads .env, so don't use dotenv.
+Use Bun instead of Node.js.
 
-## APIs
+- `bun <file>` instead of `node <file>`
+- `bun test` instead of jest/vitest
+- `bun install` instead of npm/yarn/pnpm install
+- `bun run <script>` instead of npm run
+- Bun auto-loads `.env`, no dotenv needed
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+### APIs
 
-## Testing
+- `Bun.serve()` for HTTP/WebSocket (not express)
+- `bun:sqlite` for SQLite (not better-sqlite3)
+- `Bun.file` over `node:fs` readFile/writeFile
+- `Bun.$\`cmd\`` instead of execa
 
-Use `bun test` to run tests.
+### Testing
 
-```ts#index.test.ts
+```ts
 import { test, expect } from "bun:test";
 
-test("hello world", () => {
+test("example", () => {
   expect(1).toBe(1);
 });
 ```
 
-## Frontend
-
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
-
-Server:
-
-```ts#index.ts
-import index from "./index.html"
-
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
-```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-
-// import .css files directly and it works
-import './index.css';
-
-import { createRoot } from "react-dom/client";
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.
+Run: `bun test`
