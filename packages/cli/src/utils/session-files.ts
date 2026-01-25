@@ -55,13 +55,6 @@ export async function findClaudeCodeSessions(): Promise<
 				const { title, preview, messageCount } =
 					extractSessionMetadata(content);
 
-				if (
-					title.toLowerCase() === "warmup" ||
-					title === "No content available"
-				) {
-					continue;
-				}
-
 				sessions.push({
 					path: filePath,
 					sessionId: file.replace(".jsonl", ""),
@@ -320,4 +313,28 @@ export function formatProjectName(encodedName: string): string {
 	// Fallback: return last segment
 	const segments = decoded.split("/").filter(Boolean);
 	return segments[segments.length - 1] || encodedName;
+}
+
+/**
+ * Filter sessions for display in selection UI
+ * Removes sessions without meaningful titles (warmup sessions, empty content)
+ */
+export function filterSessionsForDisplay(
+	sessions: SessionFileWithSummary[],
+): SessionFileWithSummary[] {
+	return sessions.filter(
+		(session) =>
+			session.title.toLowerCase() !== "warmup" &&
+			session.title !== "No content available",
+	);
+}
+
+/**
+ * Find a session by its ID
+ */
+export function findSessionById(
+	sessions: SessionFileWithSummary[],
+	sessionId: string,
+): SessionFileWithSummary | undefined {
+	return sessions.find((session) => session.sessionId === sessionId);
 }

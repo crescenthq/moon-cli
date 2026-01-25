@@ -11,7 +11,9 @@ import {
 import { defineCommand } from "citty";
 import pc from "picocolors";
 import {
+	filterSessionsForDisplay,
 	findClaudeCodeSessions,
+	findSessionById,
 	formatFileSize,
 	formatProjectName,
 	formatRelativeTime,
@@ -168,7 +170,7 @@ export const shareCommand = defineCommand({
 
 				// If sessionId provided, find that session
 				if (args.sessionId) {
-					const session = sessions.find((s) => s.sessionId === args.sessionId);
+					const session = findSessionById(sessions, args.sessionId);
 					if (!session) {
 						exitWithError(`Session "${args.sessionId}" not found`);
 						return;
@@ -183,10 +185,17 @@ export const shareCommand = defineCommand({
 
 					selectedSession = sessions[0];
 				} else {
+					const displaySessions = filterSessionsForDisplay(sessions);
+
+					if (displaySessions.length === 0) {
+						exitWithError("No shareable sessions found");
+						return;
+					}
+
 					const selectedPath = await select({
 						message: "Select a session to share",
 						maxItems: 10,
-						options: sessions.slice(0, 50).map((session) => {
+						options: displaySessions.slice(0, 50).map((session) => {
 							const fileSize = args.displaySize
 								? formatFileSize(session.size)
 								: "";
@@ -203,7 +212,7 @@ export const shareCommand = defineCommand({
 						process.exit(0);
 					}
 
-					const found = sessions.find((s) => s.path === selectedPath);
+					const found = displaySessions.find((s) => s.path === selectedPath);
 					if (!found) {
 						exitWithError("Session not found");
 						return;
