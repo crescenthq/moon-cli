@@ -2,6 +2,7 @@ import {
 	cancel,
 	intro,
 	isCancel,
+	log,
 	note,
 	outro,
 	select,
@@ -9,7 +10,9 @@ import {
 	text,
 } from "@clack/prompts";
 import { defineCommand } from "citty";
+import open from "open";
 import pc from "picocolors";
+import { requiresLogin, setStoredAuth } from "../utils/keychain";
 import {
 	filterSessionsForDisplay,
 	findClaudeCodeSessions,
@@ -20,6 +23,11 @@ import {
 } from "../utils/session-files";
 import { syncSession } from "../utils/sync-client";
 import { type Agent, getSyncStateBySessionId } from "../utils/sync-state";
+import {
+	DeviceAuthError,
+	pollForToken,
+	requestDeviceAuthorization,
+} from "../utils/workos-auth";
 
 export const shareCommand = defineCommand({
 	meta: {
@@ -60,9 +68,9 @@ export const shareCommand = defineCommand({
 			description: "Output JSON for machine parsing (implies non-interactive)",
 			required: false,
 		},
-		"non-interactive": {
+		quiet: {
 			type: "boolean",
-			description: "Run without prompts (for scripts/hooks)",
+			description: "Suppress terminal UI (browser still opens for auth)",
 			required: false,
 		},
 	},
@@ -91,14 +99,14 @@ export const shareCommand = defineCommand({
 					description: "Output JSON for machine parsing",
 					required: false,
 				},
-				"non-interactive": {
+				quiet: {
 					type: "boolean",
-					description: "Run without prompts (for scripts/hooks)",
+					description: "Suppress terminal UI (browser still opens for auth)",
 					required: false,
 				},
 			},
 			run: async ({ args }) => {
-				const isNonInteractive = args["non-interactive"] || args.json;
+				const isQuiet = args.quiet || args.json;
 
 				const session = await getSyncStateBySessionId(
 					args.agent as Agent,
@@ -115,7 +123,7 @@ export const shareCommand = defineCommand({
 					process.exit(0);
 				}
 
-				if (isNonInteractive) {
+				if (isQuiet) {
 					// Plain text output for scripts
 					console.log(result.sharing ? result.url : "");
 					process.exit(0);
@@ -134,7 +142,7 @@ export const shareCommand = defineCommand({
 	},
 	run: async ({ args }) => {
 		const isJson = args.json;
-		const isNonInteractive = args["non-interactive"] || isJson;
+		const isQuiet = args.quiet || isJson;
 
 		const exitWithError = (message: string): never => {
 			if (isJson) {
@@ -145,9 +153,77 @@ export const shareCommand = defineCommand({
 			process.exit(1);
 		};
 
-		// Only show intro in interactive mode
-		if (!isNonInteractive) {
+		// Only show intro in non-quiet mode
+		if (!isQuiet) {
 			intro(pc.bgCyan(pc.black(" Moon CLI ")));
+		}
+
+		// Check if user is logged in, trigger login flow if needed
+		if (await requiresLogin()) {
+			// In quiet mode, return structured error for agent to handle
+			if (isQuiet) {
+				console.log(
+					JSON.stringify({
+						error: "authentication_required",
+						message: "Login required to share sessions",
+						action: {
+							command: "moon login",
+							description:
+								"Authenticate with Moon to enable session sharing. This creates a free account that lets you generate shareable URLs for your coding sessions.",
+						},
+					}),
+				);
+				process.exit(1);
+			}
+
+			// Interactive mode: inline login flow
+			log.warn("Sharing requires a Moon login. Starting sign-in...");
+			log.message(pc.dim("Press Ctrl+C to cancel."));
+
+			const loginSpinner = spinner();
+			loginSpinner.start("Preparing authentication...");
+
+			try {
+				const deviceAuth = await requestDeviceAuthorization();
+				loginSpinner.stop("Ready for authentication");
+
+				note(
+					[
+						`${pc.bold("Your code:")} ${pc.cyan(pc.bold(deviceAuth.user_code))}`,
+						"",
+						`${pc.bold("Visit:")} ${pc.underline(deviceAuth.verification_uri)}`,
+						"",
+						pc.dim("Or open this link directly:"),
+						pc.dim(pc.underline(deviceAuth.verification_uri_complete)),
+					].join("\n"),
+					"Authorize Moon CLI",
+				);
+
+				try {
+					await open(deviceAuth.verification_uri_complete);
+					log.info("Browser opened automatically");
+				} catch {
+					log.warn("Could not open browser. Please open the link manually.");
+				}
+
+				const pollSpinner = spinner();
+				pollSpinner.start("Waiting for authorization...");
+
+				const auth = await pollForToken({
+					deviceCode: deviceAuth.device_code,
+					interval: deviceAuth.interval,
+					expiresIn: deviceAuth.expires_in,
+				});
+
+				await setStoredAuth(auth);
+				pollSpinner.stop("Login successful!");
+			} catch (error) {
+				if (error instanceof DeviceAuthError) {
+					cancel(error.message);
+					process.exit(1);
+				}
+				throw error;
+			}
 		}
 
 		// Default to claude-code, support other agents in the future
@@ -176,7 +252,7 @@ export const shareCommand = defineCommand({
 						return;
 					}
 					selectedSession = session;
-				} else if (isNonInteractive) {
+				} else if (isQuiet) {
 					// In non-interactive mode if a session is not passed we use most recent session
 					if (!sessions[0]) {
 						exitWithError(`Session not found`);
@@ -235,7 +311,7 @@ export const shareCommand = defineCommand({
 		let title: string;
 		if (args.title) {
 			title = args.title;
-		} else if (isNonInteractive) {
+		} else if (isQuiet) {
 			// In non-interactive mode, use extracted title
 			title = extractedTitle;
 		} else {
@@ -257,7 +333,7 @@ export const shareCommand = defineCommand({
 		let visibility: string;
 		if (args.visibility) {
 			visibility = args.visibility;
-		} else if (isNonInteractive) {
+		} else if (isQuiet) {
 			// In non-interactive mode, default to unlisted
 			visibility = "unlisted";
 		} else {
@@ -282,7 +358,7 @@ export const shareCommand = defineCommand({
 		}
 
 		// Sync session with chunked upload
-		const s = isNonInteractive ? null : spinner();
+		const s = isQuiet ? null : spinner();
 		s?.start("Syncing session...");
 
 		try {

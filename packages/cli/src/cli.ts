@@ -3,6 +3,7 @@ import { defineCommand, runMain } from "citty";
 import pkg from "../package.json" with { type: "json" };
 import { configCommand } from "./commands/config";
 import { loginCommand } from "./commands/login";
+import { logoutCommand } from "./commands/logout";
 import { shareCommand } from "./commands/share";
 
 const mainCommand = defineCommand({
@@ -14,6 +15,7 @@ const mainCommand = defineCommand({
 	subCommands: {
 		share: shareCommand,
 		login: loginCommand,
+		logout: logoutCommand,
 		config: configCommand,
 	},
 });
