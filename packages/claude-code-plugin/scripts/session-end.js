@@ -2,8 +2,7 @@
 
 const { execSync } = require("node:child_process");
 
-// Use MOON_CLI env var for local dev, otherwise use npx
-const MOON_CLI = process.env.MOON_CLI || "npx --yes @moon/cli";
+const MOON_CLI = "npx --yes @moon/cli";
 const DEBUG = process.env.MOON_DEBUG === "1";
 
 function debug(...args) {
@@ -37,13 +36,10 @@ async function main(hookInput) {
 	let status;
 	try {
 		debug("Checking share status...");
-		const result = execSync(
-			`${MOON_CLI} share status "${sessionId}" --non-interactive`,
-			{
-				encoding: "utf8",
-				stdio: ["pipe", "pipe", "ignore"],
-			},
-		);
+		const result = execSync(`${MOON_CLI} share status "${sessionId}" --quiet`, {
+			encoding: "utf8",
+			stdio: ["pipe", "pipe", "ignore"],
+		});
 		const url = result.trim();
 		debug("Status result:", url);
 		status = { sharing: !!url, url };
@@ -57,7 +53,7 @@ async function main(hookInput) {
 		debug("Final sync...");
 		try {
 			const result = execSync(
-				`${MOON_CLI} share --sessionId="${sessionId}" --non-interactive`,
+				`${MOON_CLI} share --sessionId="${sessionId}" --quiet`,
 				{
 					encoding: "utf8",
 					stdio: ["pipe", "pipe", "ignore"],
