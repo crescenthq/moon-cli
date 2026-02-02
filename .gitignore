@@ -35,6 +35,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Claude Local Settings
 .claude/settings.local.json
+packages/*/.claude/settings.local.json
 
 # Wrangler
 .wrangler/
+
+# Conductor
+.conductor
