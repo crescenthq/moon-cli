@@ -2,13 +2,8 @@ import * as prompts from "@clack/prompts";
 import { defineCommand } from "citty";
 import open from "open";
 import pc from "picocolors";
+import { authStore } from "../credentials/auth-store";
 import { setConfigValue } from "../utils/config";
-import {
-	clearStoredAuth,
-	getStoredAuth,
-	isAuthenticated,
-	setStoredAuth,
-} from "../utils/keychain";
 import {
 	DeviceAuthError,
 	type DeviceAuthorizationResponse,
@@ -48,8 +43,8 @@ export const loginCommand = defineCommand({
 async function runJsonLogin(_quiet: boolean): Promise<void> {
 	try {
 		// Check if already authenticated
-		const existingAuth = await getStoredAuth();
-		if (existingAuth && (await isAuthenticated())) {
+		const existingAuth = await authStore.get();
+		if (existingAuth && (await authStore.isAuthenticated())) {
 			console.log(
 				JSON.stringify({
 					status: "already_authenticated",
@@ -82,7 +77,7 @@ async function runJsonLogin(_quiet: boolean): Promise<void> {
 		});
 
 		// Store auth
-		await setStoredAuth(auth);
+		await authStore.set(auth);
 		await setConfigValue("sharing.mode", "auto");
 
 		console.log(
@@ -109,8 +104,8 @@ async function runInteractiveLogin(quiet: boolean): Promise<void> {
 
 	try {
 		// Check if already authenticated
-		const existingAuth = await getStoredAuth();
-		if (existingAuth && (await isAuthenticated())) {
+		const existingAuth = await authStore.get();
+		if (existingAuth && (await authStore.isAuthenticated())) {
 			const shouldReauth = await prompts.confirm({
 				message: `Already logged in as ${pc.cyan(existingAuth.user.email)}. Re-authenticate?`,
 			});
@@ -121,7 +116,7 @@ async function runInteractiveLogin(quiet: boolean): Promise<void> {
 			}
 
 			// Clear existing auth to re-authenticate
-			await clearStoredAuth();
+			await authStore.clear();
 		}
 
 		// Request device authorization
@@ -177,7 +172,7 @@ async function runInteractiveLogin(quiet: boolean): Promise<void> {
 			pollSpinner.stop("Authorization successful!");
 
 			// Store auth
-			await setStoredAuth(auth);
+			await authStore.set(auth);
 			await setConfigValue("sharing.mode", "auto");
 
 			const displayName = auth.user.firstName || auth.user.email;

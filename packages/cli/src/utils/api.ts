@@ -1,4 +1,5 @@
-import { clearStoredAuth, getValidAccessToken } from "./keychain";
+import { authStore } from "../credentials/auth-store";
+import { refreshAccessToken } from "./workos-auth";
 
 const API_URL = "https://mooncomputer.io/api/";
 
@@ -36,7 +37,7 @@ async function doFetch<T>(path: string, options: RequestOptions): Promise<T> {
 	// Inject Authorization header if authenticated (auto-refreshes if needed)
 	// Skip for external URLs unless explicitly using Moon API
 	if (!skipAuth && !isAbsoluteUrl(path)) {
-		const accessToken = await getValidAccessToken();
+		const accessToken = await authStore.getValidAccessToken();
 		if (accessToken) {
 			requestHeaders.Authorization = `Bearer ${accessToken}`;
 		}
@@ -65,9 +66,34 @@ async function doFetch<T>(path: string, options: RequestOptions): Promise<T> {
 		body: requestBody,
 	});
 
-	// Handle 401 Unauthorized - clear stored auth (only for Moon API)
+	// Handle 401 Unauthorized - try to refresh token first (only for Moon API)
 	if (response.status === 401 && !isAbsoluteUrl(path)) {
-		await clearStoredAuth();
+		const auth = await authStore.get();
+		if (auth?.refreshToken) {
+			const refreshedAuth = await refreshAccessToken(auth.refreshToken);
+			if (refreshedAuth) {
+				// Preserve existing user info if refresh response didn't include it
+				if (!refreshedAuth.user.id) {
+					refreshedAuth.user = auth.user;
+				}
+				await authStore.set(refreshedAuth);
+
+				// Retry the request with the new token
+				requestHeaders.Authorization = `Bearer ${refreshedAuth.accessToken}`;
+				const retryResponse = await globalThis.fetch(url, {
+					method,
+					headers: requestHeaders,
+					body: requestBody,
+				});
+
+				if (retryResponse.ok) {
+					return retryResponse.json() as Promise<T>;
+				}
+			}
+		}
+
+		// Refresh failed or no refresh token - clear auth
+		await authStore.clear();
 		const errorBody = await response.text();
 		throw new FetchError(
 			"Authentication expired. Please run 'moon login' again.",

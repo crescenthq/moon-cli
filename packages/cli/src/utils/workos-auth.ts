@@ -1,5 +1,5 @@
+import type { StoredAuth, StoredUser } from "../credentials/auth-store";
 import { FetchError, fetch } from "./api";
-import type { StoredAuth, StoredUser } from "./keychain";
 
 const WORKOS_API_URL = "https://api.workos.com/user_management";
 const WORKOS_CLIENT_ID = "client_01KFTHN2BEHPN4JBCFXS6XS0PP";
@@ -16,7 +16,6 @@ export type DeviceAuthorizationResponse = {
 export type AuthenticationResponse = {
 	access_token: string;
 	refresh_token: string;
-	expires_in: number;
 	user: {
 		id: string;
 		email: string;
@@ -126,10 +125,11 @@ export async function pollForToken({
 				lastName: response.user.last_name,
 			};
 
+			console.log("Login Response =>", response);
+
 			return {
 				accessToken: response.access_token,
 				refreshToken: response.refresh_token,
-				expiresAt: Date.now() / 1000 + response.expires_in,
 				user,
 			};
 		} catch (error) {
@@ -158,7 +158,6 @@ function sleep(ms: number): Promise<void> {
 export type RefreshTokenResponse = {
 	access_token: string;
 	refresh_token: string;
-	expires_in: number;
 };
 
 export async function refreshAccessToken(
@@ -180,7 +179,6 @@ export async function refreshAccessToken(
 		return {
 			accessToken: data.access_token,
 			refreshToken: data.refresh_token,
-			expiresAt: Date.now() / 1000 + data.expires_in,
 			user: data.user
 				? {
 						id: data.user.id,

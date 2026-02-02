@@ -1,7 +1,7 @@
 import * as prompts from "@clack/prompts";
 import { defineCommand } from "citty";
 import pc from "picocolors";
-import { clearStoredAuth, getStoredAuth } from "../utils/keychain";
+import { authStore } from "../credentials/auth-store";
 
 export const logoutCommand = defineCommand({
 	meta: {
@@ -28,7 +28,7 @@ export const logoutCommand = defineCommand({
 
 async function runJsonLogout(): Promise<void> {
 	try {
-		const existingAuth = await getStoredAuth();
+		const existingAuth = await authStore.get();
 
 		if (!existingAuth) {
 			console.log(
@@ -40,7 +40,7 @@ async function runJsonLogout(): Promise<void> {
 			return;
 		}
 
-		await clearStoredAuth();
+		await authStore.clear();
 
 		console.log(
 			JSON.stringify({
@@ -64,14 +64,14 @@ async function runInteractiveLogout(): Promise<void> {
 	prompts.intro(pc.cyan("Moon CLI"));
 
 	try {
-		const existingAuth = await getStoredAuth();
+		const existingAuth = await authStore.get();
 
 		if (!existingAuth) {
 			prompts.outro("You are not logged in.");
 			return;
 		}
 
-		await clearStoredAuth();
+		await authStore.clear();
 
 		prompts.outro(pc.green("You have been logged out."));
 	} catch (error) {

@@ -12,7 +12,7 @@ import {
 import { defineCommand } from "citty";
 import open from "open";
 import pc from "picocolors";
-import { requiresLogin, setStoredAuth } from "../utils/keychain";
+import { authStore } from "../credentials/auth-store";
 import {
 	filterSessionsForDisplay,
 	findClaudeCodeSessions,
@@ -159,7 +159,7 @@ export const shareCommand = defineCommand({
 		}
 
 		// Check if user is logged in, trigger login flow if needed
-		if (await requiresLogin()) {
+		if (await authStore.requiresLogin()) {
 			// In quiet mode, return structured error for agent to handle
 			if (isQuiet) {
 				console.log(
@@ -215,7 +215,7 @@ export const shareCommand = defineCommand({
 					expiresIn: deviceAuth.expires_in,
 				});
 
-				await setStoredAuth(auth);
+				await authStore.set(auth);
 				pollSpinner.stop("Login successful!");
 			} catch (error) {
 				if (error instanceof DeviceAuthError) {
