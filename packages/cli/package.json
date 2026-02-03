@@ -13,6 +13,11 @@
 		"dev": "bun run src/cli.ts",
 		"publish:npm": "bun run build && npm publish"
 	},
+	"repository": {
+    "type" : "git",
+    "url" : "https://github.com/crescenthq/moon-cli.git",
+    "directory": "packages/cli"
+  },
 	"devDependencies": {
 		"@types/bun": "latest"
 	},
