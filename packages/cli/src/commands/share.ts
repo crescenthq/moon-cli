@@ -329,12 +329,15 @@ export const shareCommand = defineCommand({
 		}
 
 		// Determine visibility
-		let visibility: string;
-		if (args.visibility) {
-			visibility = args.visibility;
+		let visibility: "private" | "public" | "unlisted";
+		if (
+			args.visibility &&
+			["private", "public", "unlisted"].includes(args.visibility)
+		) {
+			visibility = args.visibility as typeof visibility;
 		} else if (isQuiet) {
-			// In non-interactive mode, default to unlisted
-			visibility = "unlisted";
+			// In non-interactive mode, default to private
+			visibility = "private";
 		} else {
 			const selectedVisibility = await select({
 				message: "Who can view this session?",
@@ -353,7 +356,7 @@ export const shareCommand = defineCommand({
 				cancel("Operation cancelled");
 				process.exit(0);
 			}
-			visibility = selectedVisibility as string;
+			visibility = selectedVisibility;
 		}
 
 		// Sync session with chunked upload

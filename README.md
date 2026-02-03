@@ -2,7 +2,7 @@
 
 Share your Claude Code sessions with a link.
 
-Moon syncs your Claude Code conversations to the cloud and gives you a shareable URL. As you work, sessions stay in sync automatically.
+Moon syncs your Claude Code conversations and gives you a shareable URL. As you work, sessions stay in sync automatically.
 
 ## Quick Start
 
