@@ -2,7 +2,7 @@
 
 const { execSync } = require("node:child_process");
 
-const MOON_CLI = process.env.MOON_CLI ?? "npx --yes @moon/cli";
+const MOON_CLI = process.env.MOON_CLI ?? "npx --yes @crescenthq/moon";
 const DEBUG = process.env.MOON_DEBUG === "1";
 
 function debug(...args) {

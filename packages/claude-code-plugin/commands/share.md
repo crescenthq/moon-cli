@@ -18,13 +18,13 @@ Before running the share command:
 Prefer `moon` from PATH, fallback to dev path:
 
 ```bash
-npx --yes @moon/cli share --sessionId "$CLAUDE_SESSION_ID" --title "<TITLE>" --quiet
+npx --yes @crescenthq/moon share --sessionId "$CLAUDE_SESSION_ID" --title "<TITLE>" --quiet
 ```
 
 Fallback:
 
 ```bash
-npx --yes @moon/cli share --sessionId "$CLAUDE_SESSION_ID" --title "<TITLE>" --quiet
+npx --yes @crescenthq/moon share --sessionId "$CLAUDE_SESSION_ID" --title "<TITLE>" --quiet
 ```
 
 ## Output Handling
@@ -54,7 +54,7 @@ The command outputs JSON in quiet mode.
 When you receive this:
 
 1. Tell the user: "To share sessions, you'll need to sign in to Moon (free). This enables shareable URLs for live viewing of your coding sessions."
-2. Run: `npx --yes @moon/cli login` (opens browser for sign-in)
+2. Run: `npx --yes @crescenthq/moon login` (opens browser for sign-in)
 3. After successful login, retry the share command **once**
 
 ### Other Errors
