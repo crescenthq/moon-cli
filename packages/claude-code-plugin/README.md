@@ -25,7 +25,7 @@ Hooks call the Moon CLI to perform syncing in the background.
 Set sharing mode via the CLI:
 
 ```bash
-# Manual only (default)
+# Manual only
 moon config set sharing.mode off
 
 # Show reminders to share

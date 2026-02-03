@@ -1,11 +1,16 @@
-# @moon/cli
+# moon
 
 Tool for sharing your coding agent (Claude Code) sessions with Moon.
 
 ## Installation
 
 ```bash
-bun install -g @moon/cli
+npm install -g @crescenthq/moon
+```
+
+Or use directly with `npx`
+```bash
+npx @crescenthq/moon share
 ```
 
 ## Commands
@@ -22,7 +27,7 @@ moon share
 moon share --sessionId abc123
 
 # Non-interactive with JSON output (for scripts)
-moon share --non-interactive --json
+moon share --json
 ```
 
 **Options:**
@@ -32,7 +37,7 @@ moon share --non-interactive --json
 | `--sessionId <id>` | Share a specific session |
 | `--title <title>` | Custom title |
 | `--visibility <v>` | `public`, `unlisted`, or `private` |
-| `--non-interactive` | Skip prompts (uses defaults) |
+| `--quiet` | Skip prompts (uses defaults) |
 | `--json` | Output JSON |
 
 ### `moon share status <sessionId>`
@@ -43,6 +48,10 @@ Check if a session is being shared.
 moon share status abc123 --json
 # {"sharing":true,"url":"https://..."}
 ```
+
+### `moon login`
+
+Authenticate with Moon. 
 
 ### `moon config`
 
@@ -63,23 +72,6 @@ moon config set sharing.mode auto
 | `off` | Manual sharing only (default) |
 | `prompt` | Remind to use `/share` on session start |
 | `auto` | Automatically share all sessions |
-
-### `moon login`
-
-Authenticate with Moon. 
-
-## Development
-
-```bash
-# Run locally
-bun run dev share
-
-# Build
-bun run build
-
-# Test
-bun test
-```
 
 ## Files
 
