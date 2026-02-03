@@ -2,7 +2,7 @@ import type { StoredAuth, StoredUser } from "../credentials/auth-store";
 import { FetchError, fetch } from "./api";
 
 const WORKOS_API_URL = "https://api.workos.com/user_management";
-const WORKOS_CLIENT_ID = "client_01KFTHN2BEHPN4JBCFXS6XS0PP";
+const WORKOS_CLIENT_ID = "client_01KFTHN2QX3GECKR5RJBB9BKGR";
 
 export type DeviceAuthorizationResponse = {
 	device_code: string;

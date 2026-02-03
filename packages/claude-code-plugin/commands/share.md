@@ -34,7 +34,7 @@ The command outputs JSON in quiet mode.
 **On success**, extract and display only the `url` field to the user:
 
 ```json
-{"url": "https://mooncomputer.io/s/abc123", "sessionId": "..."}
+{"url": "https://moon.page/s/abc123", "sessionId": "..."}
 ```
 
 **On error**, parse the `error` field to determine next steps.
@@ -72,7 +72,7 @@ User types `/share`:
 1. Generate title from conversation context (e.g., "Implementing user signup form")
 2. Run: `moon share --sessionId "$CLAUDE_SESSION_ID" --title "Refactoring session discovery" --quiet`
 3. Parse JSON response
-4. If success: Display "Your session is live at: https://mooncomputer.io/s/abc123"
+4. If success: Display "Your session is live at: https://moon.page/s/abc123"
 5. If auth required: Explain, run `moon login`, retry once
 
 ## Best Practices

@@ -1,5 +1,5 @@
 {
-	"name": "@moon/cli",
+	"name": "@crescenthq/moon",
 	"description": "CLI Tool for sharing your agent sesh with Moon!",
 	"version": "0.0.1",
 	"type": "module",

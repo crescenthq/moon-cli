@@ -47,8 +47,8 @@ type Visibility = "private" | "unlisted" | "public";
 ## Constants
 
 ```typescript
-const DEFAULT_API_URL = "https://api.mooncomputer.io";
-const DEFAULT_WEB_URL = "https://mooncomputer.io";
+const DEFAULT_API_URL = "https://api.moon.page";
+const DEFAULT_WEB_URL = "https://moon.page";
 ```
 
 ## Development

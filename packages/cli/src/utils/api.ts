@@ -1,7 +1,7 @@
 import { authStore } from "../credentials/auth-store";
 import { refreshAccessToken } from "./workos-auth";
 
-const API_URL = "https://mooncomputer.io/api/";
+const API_URL = "https://moon.page/api/";
 
 export class FetchError extends Error {
 	constructor(
