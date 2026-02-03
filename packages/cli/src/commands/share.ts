@@ -106,7 +106,7 @@ export const shareCommand = defineCommand({
 				},
 			},
 			run: async ({ args }) => {
-				const isQuiet = args.quiet || args.json;
+				const isQuiet = args.quiet ?? args.json;
 
 				const session = await getSyncStateBySessionId(
 					args.agent as Agent,
@@ -141,11 +141,10 @@ export const shareCommand = defineCommand({
 		}),
 	},
 	run: async ({ args }) => {
-		const isJson = args.json;
-		const isQuiet = args.quiet || isJson;
+		const isQuiet = args.quiet ?? args.json ?? false;
 
 		const exitWithError = (message: string): never => {
-			if (isJson) {
+			if (isQuiet) {
 				console.log(JSON.stringify({ error: message }));
 			} else {
 				cancel(message);
@@ -367,7 +366,7 @@ export const shareCommand = defineCommand({
 				visibility,
 			});
 
-			if (isJson) {
+			if (isQuiet) {
 				console.log(
 					JSON.stringify({
 						success: true,
@@ -385,7 +384,7 @@ export const shareCommand = defineCommand({
 				);
 			}
 		} catch (error) {
-			if (isJson) {
+			if (isQuiet) {
 				console.log(
 					JSON.stringify({
 						error: error instanceof Error ? error.message : "Unknown error",

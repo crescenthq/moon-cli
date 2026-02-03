@@ -60,7 +60,7 @@ function removeTestSession(sessionFile) {
 
 function setConfig(key, value) {
 	try {
-		execSync(`${MOON_CLI} config set ${key} ${value} --non-interactive`, {
+		execSync(`${MOON_CLI} config set ${key} ${value} --quite`, {
 			encoding: "utf8",
 			stdio: ["pipe", "pipe", "ignore"],
 		});
@@ -72,7 +72,7 @@ function setConfig(key, value) {
 
 function getConfig(key) {
 	try {
-		return execSync(`${MOON_CLI} config get ${key} --non-interactive`, {
+		return execSync(`${MOON_CLI} config get ${key} --quite`, {
 			encoding: "utf8",
 			stdio: ["pipe", "pipe", "ignore"],
 		}).trim();

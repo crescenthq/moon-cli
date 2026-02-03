@@ -1,7 +1,7 @@
 import { FetchError, fetch } from "./api";
 import { getSessionState, updateSessionState } from "./sync-state";
 
-const APP_BASE_URL = "http://mooncomputer.io";
+const APP_BASE_URL = "https://mooncomputer.io";
 
 export type SyncResult = {
 	success: boolean;

@@ -125,8 +125,6 @@ export async function pollForToken({
 				lastName: response.user.last_name,
 			};
 
-			console.log("Login Response =>", response);
-
 			return {
 				accessToken: response.access_token,
 				refreshToken: response.refresh_token,

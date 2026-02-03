@@ -20,24 +20,24 @@ export const configCommand = defineCommand({
 					description: "Config key (e.g., sharing.mode)",
 					required: true,
 				},
-				"non-interactive": {
+				quiet: {
 					type: "boolean",
 					description: "Output plain value for scripts/hooks",
 					required: false,
 				},
 			},
 			run: async ({ args }) => {
-				const isNonInteractive = args["non-interactive"];
+				const isQuiet = args.quiet;
 				const value = await getConfigValue(args.key as string);
 				if (value === undefined) {
-					if (isNonInteractive) {
+					if (isQuiet) {
 						console.log("");
 					} else {
 						log.error(pc.red(`Unknown config key: ${args.key}`));
 					}
 					process.exit(1);
 				}
-				if (isNonInteractive) {
+				if (isQuiet) {
 					console.log(value);
 				} else {
 					log.info(value);
