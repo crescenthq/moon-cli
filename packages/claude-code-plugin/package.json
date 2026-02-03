@@ -4,6 +4,6 @@
 	"description": "Moon session sharing plugin for Claude Code",
 	"license": "MIT",
 	"scripts": {
-		"test": "bash scripts/test-hooks.sh"
+		"test": "bun scripts/test-hooks.js"
 	}
 }

@@ -2,8 +2,7 @@
 
 const { execSync, spawn } = require("node:child_process");
 
-// Use MOON_CLI env var for local dev, otherwise use npx
-const MOON_CLI = "npx --yes @moon/cli";
+const MOON_CLI = process.env.MOON_CLI ?? "npx --yes @moon/cli";
 const DEBUG = process.env.MOON_DEBUG === "1";
 
 function debug(...args) {
