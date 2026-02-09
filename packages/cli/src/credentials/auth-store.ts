@@ -38,8 +38,8 @@ export function createAuthStore() {
 		try {
 			const content = await readFile(configPath, "utf-8");
 			return StoredAuthSchema.parse(JSON.parse(content));
-		} catch (error) {
-			console.error("Error reading auth file:", error);
+		} catch {
+			// Ignore if file doesn't exist
 			return null;
 		}
 	}

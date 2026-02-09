@@ -17,9 +17,18 @@ export type ProgressCallback = (progress: { phase: SyncProgress }) => void;
 
 type CreateSessionResponse = {
 	status: string;
-	data: {
-		sessionId: string;
-		messageCount: number;
+  data: {
+    id: string;
+    agent: string;
+    agentSessionId: string;
+    agentVersion: string;
+    title: string;
+    filePath: string;
+    projectName: string;
+    gitBranch: string;
+    gitRemoteUrl: string;
+    visibility: string;
+    slug: string;
 	};
 };
 
@@ -49,14 +58,15 @@ type SyncChunkOptions = {
 
 type CreateSessionOptions = {
 	agent: string;
-	agentVersion: string;
+  agentVersion?: string;
+	agentSessionId: string;
 
 	projectName: string;
 	filePath: string;
 	title: string;
 	visibility: string;
-	gitBranch: string;
-	gitRemoteUrl: string;
+	gitBranch?: string;
+	gitRemoteUrl?: string;
 };
 
 async function createSession({
@@ -67,7 +77,8 @@ async function createSession({
 	title,
 	visibility,
 	gitBranch,
-	gitRemoteUrl,
+  gitRemoteUrl,
+  agentSessionId
 }: CreateSessionOptions): Promise<CreateSessionResponse["data"]> {
 	const result = await fetch<CreateSessionResponse>("/sessions", {
 		method: "POST",
@@ -79,7 +90,8 @@ async function createSession({
 			title,
 			visibility,
 			gitBranch,
-			gitRemoteUrl,
+      gitRemoteUrl,
+      agentSessionId
 		},
 	});
 	return result.data;
@@ -163,7 +175,8 @@ export async function syncSession(
 	metadata: {
 		title?: string;
 		visibility?: string;
-		agentVersion?: string;
+    agentVersion?: string;
+		agentSessionId: string;
 		projectName?: string;
 		gitBranch?: string;
 		gitRemoteUrl?: string;
@@ -186,15 +199,17 @@ export async function syncSession(
 		onProgress?.({ phase: "creating" });
 		const created = await createSession({
 			agent,
-			agentVersion: metadata.agentVersion || "",
+      agentVersion: metadata.agentVersion,
 			projectName: metadata.projectName || "",
 			filePath,
 			title: metadata.title ?? "Untitled",
 			visibility: metadata.visibility ?? "private",
 			gitBranch: metadata.gitBranch,
-			gitRemoteUrl: metadata.gitRemoteUrl,
+      gitRemoteUrl: metadata.gitRemoteUrl,
+      agentSessionId: metadata.agentSessionId
 		});
-		sessionId = created.sessionId;
+		console.log("Created Session: ", created);
+		sessionId = created.slug;
 		isNew = true;
 	}
 

@@ -13,7 +13,7 @@ import { defineCommand } from "citty";
 import open from "open";
 import pc from "picocolors";
 import { authStore } from "../credentials/auth-store";
-import { getGitRemoteUrl, parseRepoNameFromUrl } from "../utils/git-info";
+import { getProjectInfo } from "../utils/git-info";
 import {
 	filterSessionsForDisplay,
 	findClaudeCodeSessions,
@@ -227,12 +227,13 @@ export const shareCommand = defineCommand({
 		}
 
 		// Default to claude-code, support other agents in the future
-		const agent: Agent = (args.agent as Agent) || "claude-code";
+		const agent: Agent = (args.agent as Agent) ?? "claude-code";
 
 		let sessionPath: string;
 		let sessionContent: string;
 		let extractedTitle: string;
-		let sessionAgentVersion: string | undefined;
+    let sessionAgentVersion: string | undefined;
+		let agentSessionId: string | undefined;
 		let sessionGitBranch: string | undefined;
 		let sessionCwd: string | undefined;
 
@@ -304,7 +305,8 @@ export const shareCommand = defineCommand({
 				extractedTitle = selectedSession.title;
 				sessionAgentVersion = selectedSession.agentVersion;
 				sessionGitBranch = selectedSession.gitBranch;
-				sessionCwd = selectedSession.cwd;
+        sessionCwd = selectedSession.cwd;
+        agentSessionId = selectedSession.sessionId;
 				break;
 			}
 
@@ -366,36 +368,25 @@ export const shareCommand = defineCommand({
 			visibility = selectedVisibility;
 		}
 
-		// Fetch git info if session has a cwd
-    let gitRemoteUrl?: string;
-    let projectName?: string;
+		// Get project info (cached, prefers git remote, falls back to directory name)
+		let projectName: string | undefined;
+		let gitRemoteUrl: string | undefined;
 
 		if (sessionCwd) {
-			gitRemoteUrl = getGitRemoteUrl(sessionCwd);
-			if (gitRemoteUrl) {
-				projectName = parseRepoNameFromUrl(gitRemoteUrl);
-			}
-		}
-
-		// Fallback to formatted directory name if no git remote
-		if (!projectName) {
-			// Extract from session path - the projectName in SessionFile is the encoded dir name
-			const pathParts = sessionPath.split("/");
-			const projectDir = pathParts[pathParts.length - 2];
-			if (projectDir) {
-				projectName = formatProjectName(projectDir);
-			}
+			const projectInfo = getProjectInfo(sessionCwd);
+			projectName = projectInfo.projectName;
+			gitRemoteUrl = projectInfo.gitRemoteUrl;
 		}
 
 		// Sync session with chunked upload
 		const s = isQuiet ? null : spinner();
 		s?.start("Syncing session...");
-
 		try {
 			const result = await syncSession(agent, sessionPath, sessionContent, {
 				title,
 				visibility,
-				agentVersion: sessionAgentVersion,
+        agentVersion: sessionAgentVersion,
+				agentSessionId,
 				projectName,
 				gitBranch: sessionGitBranch,
 				gitRemoteUrl,
