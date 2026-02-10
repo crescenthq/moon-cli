@@ -17,6 +17,9 @@ export type SessionFileWithSummary = SessionFile & {
 	preview: string;
 	messageCount: number;
 	content: string;
+	agentVersion?: string;
+	gitBranch?: string;
+	cwd?: string;
 };
 
 /**
@@ -52,7 +55,7 @@ export async function findClaudeCodeSessions(): Promise<
 				if (fileStat.size === 0) continue;
 
 				const content = await readSessionContent(filePath);
-				const { title, preview, messageCount } =
+				const { title, preview, messageCount, agentVersion, gitBranch, cwd } =
 					extractSessionMetadata(content);
 
 				sessions.push({
@@ -65,6 +68,9 @@ export async function findClaudeCodeSessions(): Promise<
 					preview,
 					messageCount,
 					content,
+					agentVersion,
+					gitBranch,
+					cwd,
 				});
 			}
 		}
@@ -120,6 +126,9 @@ type SessionMetadata = {
 	title: string;
 	preview: string;
 	messageCount: number;
+	agentVersion?: string;
+	gitBranch?: string;
+	cwd?: string;
 };
 
 const JUNK_PREFIXES = [
@@ -210,10 +219,16 @@ export function extractSessionMetadata(content: string): SessionMetadata {
 		type?: string;
 		isMeta?: boolean;
 		message?: { content?: unknown };
+		version?: string;
+		gitBranch?: string;
+		cwd?: string;
 	};
 
 	const candidates: Array<{ text: string; score: number; source: string }> = [];
 	let messageCount = 0;
+	let agentVersion: string | undefined;
+	let gitBranch: string | undefined;
+	let cwd: string | undefined;
 
 	for (const line of lines) {
 		let entry: ParsedEntry;
@@ -221,6 +236,17 @@ export function extractSessionMetadata(content: string): SessionMetadata {
 			entry = JSON.parse(line);
 		} catch {
 			continue;
+		}
+
+		// Extract version, gitBranch, cwd from first entry that has them
+		if (!agentVersion && entry.version) {
+			agentVersion = entry.version;
+		}
+		if (!gitBranch && entry.gitBranch) {
+			gitBranch = entry.gitBranch;
+		}
+		if (!cwd && entry.cwd) {
+			cwd = entry.cwd;
 		}
 
 		if (entry.type === "user" || entry.type === "assistant") {
@@ -251,6 +277,9 @@ export function extractSessionMetadata(content: string): SessionMetadata {
 			title: "No content available",
 			preview: "No preview available",
 			messageCount,
+			agentVersion,
+			gitBranch,
+			cwd,
 		};
 	}
 
@@ -258,6 +287,9 @@ export function extractSessionMetadata(content: string): SessionMetadata {
 		title: truncateCleanly(best.text, 70),
 		preview: truncateCleanly(best.text, 120),
 		messageCount,
+		agentVersion,
+		gitBranch,
+		cwd,
 	};
 }
 

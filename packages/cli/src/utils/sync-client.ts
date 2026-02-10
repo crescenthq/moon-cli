@@ -18,8 +18,17 @@ export type ProgressCallback = (progress: { phase: SyncProgress }) => void;
 type CreateSessionResponse = {
 	status: string;
 	data: {
-		sessionId: string;
-		messageCount: number;
+		id: string;
+		agent: string;
+		agentSessionId: string;
+		agentVersion: string;
+		title: string;
+		filePath: string;
+		projectName: string;
+		gitBranch: string;
+		gitRemoteUrl: string;
+		visibility: string;
+		slug: string;
 	};
 };
 
@@ -47,15 +56,43 @@ type SyncChunkOptions = {
 	isFinal: boolean;
 };
 
-async function createSession(
-	agent: string,
-	filePath: string,
-	title: string,
-	visibility: string,
-): Promise<CreateSessionResponse["data"]> {
+type CreateSessionOptions = {
+	agent: string;
+	agentVersion?: string;
+	agentSessionId: string;
+
+	projectName: string;
+	filePath: string;
+	title: string;
+	visibility: string;
+	gitBranch?: string;
+	gitRemoteUrl?: string;
+};
+
+async function createSession({
+	agent,
+	agentVersion,
+	projectName,
+	filePath,
+	title,
+	visibility,
+	gitBranch,
+	gitRemoteUrl,
+	agentSessionId,
+}: CreateSessionOptions): Promise<CreateSessionResponse["data"]> {
 	const result = await fetch<CreateSessionResponse>("/sessions", {
 		method: "POST",
-		body: { agent, filePath, title, visibility },
+		body: {
+			agent,
+			agentVersion,
+			projectName,
+			filePath,
+			title,
+			visibility,
+			gitBranch,
+			gitRemoteUrl,
+			agentSessionId,
+		},
 	});
 	return result.data;
 }
@@ -135,7 +172,15 @@ export async function syncSession(
 	agent: "claude-code",
 	filePath: string,
 	content: string,
-	metadata: { title?: string; visibility?: string },
+	metadata: {
+		title?: string;
+		visibility?: string;
+		agentVersion?: string;
+		agentSessionId: string;
+		projectName?: string;
+		gitBranch?: string;
+		gitRemoteUrl?: string;
+	},
 	onProgress?: ProgressCallback,
 ): Promise<SyncResult> {
 	onProgress?.({ phase: "analyzing" });
@@ -152,13 +197,19 @@ export async function syncSession(
 		isNew = false;
 	} else {
 		onProgress?.({ phase: "creating" });
-		const created = await createSession(
+		const created = await createSession({
 			agent,
+			agentVersion: metadata.agentVersion,
+			projectName: metadata.projectName || "",
 			filePath,
-			metadata.title || "Untitled",
-			metadata.visibility || "unlisted",
-		);
-		sessionId = created.sessionId;
+			title: metadata.title ?? "Untitled",
+			visibility: metadata.visibility ?? "private",
+			gitBranch: metadata.gitBranch,
+			gitRemoteUrl: metadata.gitRemoteUrl,
+			agentSessionId: metadata.agentSessionId,
+		});
+
+		sessionId = created.slug;
 		isNew = true;
 	}
 

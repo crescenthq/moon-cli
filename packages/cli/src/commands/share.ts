@@ -13,6 +13,7 @@ import { defineCommand } from "citty";
 import open from "open";
 import pc from "picocolors";
 import { authStore } from "../credentials/auth-store";
+import { getProjectInfo } from "../utils/git-info";
 import {
 	filterSessionsForDisplay,
 	findClaudeCodeSessions,
@@ -226,11 +227,15 @@ export const shareCommand = defineCommand({
 		}
 
 		// Default to claude-code, support other agents in the future
-		const agent: Agent = (args.agent as Agent) || "claude-code";
+		const agent: Agent = (args.agent as Agent) ?? "claude-code";
 
 		let sessionPath: string;
 		let sessionContent: string;
 		let extractedTitle: string;
+    let sessionAgentVersion: string | undefined;
+		let agentSessionId: string | undefined;
+		let sessionGitBranch: string | undefined;
+		let sessionCwd: string | undefined;
 
 		switch (agent) {
 			case "claude-code": {
@@ -298,6 +303,10 @@ export const shareCommand = defineCommand({
 				sessionPath = selectedSession.path;
 				sessionContent = selectedSession.content;
 				extractedTitle = selectedSession.title;
+				sessionAgentVersion = selectedSession.agentVersion;
+				sessionGitBranch = selectedSession.gitBranch;
+        sessionCwd = selectedSession.cwd;
+        agentSessionId = selectedSession.sessionId;
 				break;
 			}
 
@@ -359,14 +368,28 @@ export const shareCommand = defineCommand({
 			visibility = selectedVisibility;
 		}
 
+		// Get project info (cached, prefers git remote, falls back to directory name)
+		let projectName: string | undefined;
+		let gitRemoteUrl: string | undefined;
+
+		if (sessionCwd) {
+			const projectInfo = getProjectInfo(sessionCwd);
+			projectName = projectInfo.projectName;
+			gitRemoteUrl = projectInfo.gitRemoteUrl;
+		}
+
 		// Sync session with chunked upload
 		const s = isQuiet ? null : spinner();
 		s?.start("Syncing session...");
-
 		try {
 			const result = await syncSession(agent, sessionPath, sessionContent, {
 				title,
 				visibility,
+        agentVersion: sessionAgentVersion,
+				agentSessionId,
+				projectName,
+				gitBranch: sessionGitBranch,
+				gitRemoteUrl,
 			});
 
 			if (isQuiet) {
