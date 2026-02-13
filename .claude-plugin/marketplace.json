@@ -1,0 +1,28 @@
+{
+  "name": "every-marketplace",
+  "owner": {
+    "name": "Kamal",
+    "email": "kamalnrf@gmail.com",
+    "url": "https://github.com/Kamalnrf"
+  },
+  "metadata": {
+    "description": "Plugin marketplace for Claude Code extensions",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "moon",
+      "version": "1.0.0",
+      "description": "Share Claude Code sessions with Moon for live collaboration",
+      "author": {
+        "name": "Kamal",
+        "email": "kamalnrf@gmail.com",
+        "url": "https://github.com/Kamalnrf"
+      },
+      "homepage": "https://moon.page",
+      "license": "MIT",
+      "tags": ["session-sharing", "collaboration"],
+      "source": "./packages/claude-code-plugin"
+    }
+  ]
+}
