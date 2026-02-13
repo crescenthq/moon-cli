@@ -1,7 +1,7 @@
 {
 	"name": "@crescenthq/moon",
 	"description": "CLI Tool for sharing your agent sesh with Moon!",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"type": "module",
 	"bin": {
 		"moon": "./dist/cli.js"
