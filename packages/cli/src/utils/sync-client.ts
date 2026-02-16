@@ -202,7 +202,7 @@ export async function syncSession(
 			agentVersion: metadata.agentVersion,
 			projectName: metadata.projectName || "",
 			filePath,
-			title: metadata.title ?? "Untitled",
+			title: metadata.title || "Untitled",
 			visibility: metadata.visibility ?? "private",
 			gitBranch: metadata.gitBranch,
 			gitRemoteUrl: metadata.gitRemoteUrl,

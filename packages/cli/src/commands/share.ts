@@ -21,6 +21,7 @@ import {
 	formatFileSize,
 	formatProjectName,
 	formatRelativeTime,
+	NO_CONTENT_TITLE,
 } from "../utils/session-files";
 import { syncSession } from "../utils/sync-client";
 import { type Agent, getSyncStateBySessionId } from "../utils/sync-state";
@@ -232,7 +233,7 @@ export const shareCommand = defineCommand({
 		let sessionPath: string;
 		let sessionContent: string;
 		let extractedTitle: string;
-    let sessionAgentVersion: string | undefined;
+		let sessionAgentVersion: string | undefined;
 		let agentSessionId: string | undefined;
 		let sessionGitBranch: string | undefined;
 		let sessionCwd: string | undefined;
@@ -305,8 +306,8 @@ export const shareCommand = defineCommand({
 				extractedTitle = selectedSession.title;
 				sessionAgentVersion = selectedSession.agentVersion;
 				sessionGitBranch = selectedSession.gitBranch;
-        sessionCwd = selectedSession.cwd;
-        agentSessionId = selectedSession.sessionId;
+				sessionCwd = selectedSession.cwd;
+				agentSessionId = selectedSession.sessionId;
 				break;
 			}
 
@@ -316,17 +317,23 @@ export const shareCommand = defineCommand({
 		}
 
 		// Determine title
+		// "No content available" means the session has no extractable content yet (e.g. hook
+		// fired before the first message was written). Fall back to "Untitled" so we never
+		// persist that placeholder string as an actual session title.
+		const meaningfulTitle =
+			extractedTitle !== NO_CONTENT_TITLE ? extractedTitle : undefined;
+
 		let title: string;
 		if (args.title) {
 			title = args.title;
 		} else if (isQuiet) {
-			// In non-interactive mode, use extracted title
-			title = extractedTitle;
+			// In non-interactive mode, use extracted title (fall back to "Untitled")
+			title = meaningfulTitle ?? "Untitled";
 		} else {
 			const customTitle = await text({
 				message: "Title for your session",
-				placeholder: extractedTitle,
-				defaultValue: extractedTitle,
+				placeholder: meaningfulTitle ?? "Untitled",
+				defaultValue: meaningfulTitle,
 			});
 
 			if (isCancel(customTitle)) {
@@ -334,7 +341,7 @@ export const shareCommand = defineCommand({
 				process.exit(0);
 			}
 
-			title = customTitle || extractedTitle;
+			title = customTitle || meaningfulTitle || "Untitled";
 		}
 
 		// Determine visibility
@@ -385,7 +392,7 @@ export const shareCommand = defineCommand({
 			const result = await syncSession(agent, sessionPath, sessionContent, {
 				title,
 				visibility,
-        agentVersion: sessionAgentVersion,
+				agentVersion: sessionAgentVersion,
 				agentSessionId,
 				projectName,
 				gitBranch: sessionGitBranch,

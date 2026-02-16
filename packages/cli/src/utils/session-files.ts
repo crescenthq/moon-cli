@@ -131,6 +131,8 @@ type SessionMetadata = {
 	cwd?: string;
 };
 
+export const NO_CONTENT_TITLE = "No content available";
+
 const JUNK_PREFIXES = [
 	"```",
 	"$ ",
@@ -357,7 +359,7 @@ export function filterSessionsForDisplay(
 	return sessions.filter(
 		(session) =>
 			session.title.toLowerCase() !== "warmup" &&
-			session.title !== "No content available",
+			session.title !== NO_CONTENT_TITLE,
 	);
 }
 
