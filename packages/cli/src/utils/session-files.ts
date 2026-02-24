@@ -90,7 +90,7 @@ export async function findClaudeCodeSessions(): Promise<
 }
 
 /**
- * Discover OpenClaw sessions from ~/.openclaw/agents/*/sessions/
+ * Discover OpenClaw sessions from ~/.openclaw/agents/<agent>/sessions/
  * Returns sessions sorted by modification time (most recent first)
  */
 export async function findOpenClawSessions(): Promise<
