@@ -17,6 +17,7 @@ import { getProjectInfo } from "../utils/git-info";
 import {
 	filterSessionsForDisplay,
 	findClaudeCodeSessions,
+	findOpenClawSessions,
 	findSessionById,
 	formatFileSize,
 	formatProjectName,
@@ -39,7 +40,7 @@ export const shareCommand = defineCommand({
 		agent: {
 			type: "enum",
 			description: "The agent you're sharing your session from",
-			options: ["claude-code"],
+			options: ["claude-code", "openclaw"],
 			default: "claude-code",
 			required: false,
 		},
@@ -91,7 +92,7 @@ export const shareCommand = defineCommand({
 					// TODO: Look into why we can't pass type enum here. It is breaking type inference
 					type: "string",
 					description: "The agent you're sharing your session from",
-					options: ["claude-code"],
+					options: ["claude-code", "openclaw"],
 					default: "claude-code",
 					required: false,
 				},
@@ -232,87 +233,93 @@ export const shareCommand = defineCommand({
 		let sessionPath: string;
 		let sessionContent: string;
 		let extractedTitle: string;
-    let sessionAgentVersion: string | undefined;
+		let sessionAgentVersion: string | undefined;
 		let agentSessionId: string | undefined;
 		let sessionGitBranch: string | undefined;
 		let sessionCwd: string | undefined;
 
+		const resolveSelectedSession = async (
+			sessions: Awaited<ReturnType<typeof findClaudeCodeSessions>>,
+		): Promise<(typeof sessions)[number]> => {
+			if (args.sessionId) {
+				const session = findSessionById(sessions, args.sessionId);
+				if (!session) {
+					exitWithError(`Session "${args.sessionId}" not found`);
+				}
+				return session;
+			}
+
+			if (isQuiet) {
+				if (!sessions[0]) {
+					exitWithError("Session not found");
+				}
+				return sessions[0];
+			}
+
+			const displaySessions = filterSessionsForDisplay(sessions);
+			if (displaySessions.length === 0) {
+				exitWithError("No shareable sessions found");
+			}
+
+			const selectedPath = await select({
+				message: "Select a session to share",
+				maxItems: 10,
+				options: displaySessions.slice(0, 50).map((session) => {
+					const fileSize = args.displaySize ? formatFileSize(session.size) : "";
+					return {
+						value: session.path,
+						label: ` ${pc.cyan(formatProjectName(session.projectName))} ${session.title} ${fileSize} ${pc.dim(formatRelativeTime(session.modifiedAt))}`,
+					};
+				}),
+			});
+
+			if (isCancel(selectedPath)) {
+				cancel("Operation cancelled");
+				process.exit(0);
+			}
+
+			const found = displaySessions.find((s) => s.path === selectedPath);
+			if (!found) {
+				exitWithError("Session not found");
+			}
+			return found;
+		};
+
 		switch (agent) {
 			case "claude-code": {
 				const sessions = await findClaudeCodeSessions();
-
 				if (sessions.length === 0) {
 					exitWithError("No Claude Code sessions found in ~/.claude/projects/");
-					return;
 				}
-
-				let selectedSession: (typeof sessions)[number];
-
-				// If sessionId provided, find that session
-				if (args.sessionId) {
-					const session = findSessionById(sessions, args.sessionId);
-					if (!session) {
-						exitWithError(`Session "${args.sessionId}" not found`);
-						return;
-					}
-					selectedSession = session;
-				} else if (isQuiet) {
-					// In non-interactive mode if a session is not passed we use most recent session
-					if (!sessions[0]) {
-						exitWithError(`Session not found`);
-						return;
-					}
-
-					selectedSession = sessions[0];
-				} else {
-					const displaySessions = filterSessionsForDisplay(sessions);
-
-					if (displaySessions.length === 0) {
-						exitWithError("No shareable sessions found");
-						return;
-					}
-
-					const selectedPath = await select({
-						message: "Select a session to share",
-						maxItems: 10,
-						options: displaySessions.slice(0, 50).map((session) => {
-							const fileSize = args.displaySize
-								? formatFileSize(session.size)
-								: "";
-
-							return {
-								value: session.path,
-								label: ` ${pc.cyan(formatProjectName(session.projectName))} ${session.title} ${fileSize} ${pc.dim(formatRelativeTime(session.modifiedAt))}`,
-							};
-						}),
-					});
-
-					if (isCancel(selectedPath)) {
-						cancel("Operation cancelled");
-						process.exit(0);
-					}
-
-					const found = displaySessions.find((s) => s.path === selectedPath);
-					if (!found) {
-						exitWithError("Session not found");
-						return;
-					}
-					selectedSession = found;
-				}
-
+				const selectedSession = await resolveSelectedSession(sessions);
 				sessionPath = selectedSession.path;
 				sessionContent = selectedSession.content;
 				extractedTitle = selectedSession.title;
 				sessionAgentVersion = selectedSession.agentVersion;
 				sessionGitBranch = selectedSession.gitBranch;
-        sessionCwd = selectedSession.cwd;
-        agentSessionId = selectedSession.sessionId;
+				sessionCwd = selectedSession.cwd;
+				agentSessionId = selectedSession.sessionId;
 				break;
 			}
-
+			case "openclaw": {
+				const sessions = await findOpenClawSessions();
+				if (sessions.length === 0) {
+					exitWithError(
+						"No OpenClaw sessions found in ~/.openclaw/agents/*/sessions/",
+					);
+				}
+				const selectedSession = await resolveSelectedSession(sessions);
+				sessionPath = selectedSession.path;
+				sessionContent = selectedSession.content;
+				extractedTitle = selectedSession.title;
+				sessionAgentVersion = selectedSession.agentVersion;
+				sessionGitBranch = selectedSession.gitBranch;
+				sessionCwd = selectedSession.cwd;
+				agentSessionId = selectedSession.sessionId;
+				break;
+			}
 			default:
 				exitWithError(`Unsupported agent: ${agent}`);
-				return;
 		}
 
 		// Determine title
@@ -385,7 +392,7 @@ export const shareCommand = defineCommand({
 			const result = await syncSession(agent, sessionPath, sessionContent, {
 				title,
 				visibility,
-        agentVersion: sessionAgentVersion,
+				agentVersion: sessionAgentVersion,
 				agentSessionId,
 				projectName,
 				gitBranch: sessionGitBranch,

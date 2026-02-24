@@ -5,7 +5,7 @@ import { join } from "node:path";
 const CONFIG_DIR = join(homedir(), ".config", "moon");
 const SYNC_STATE_FILE = join(CONFIG_DIR, "sync-state.json");
 
-export type Agent = "claude-code";
+export type Agent = "claude-code" | "openclaw";
 
 export type SessionSyncState = {
 	sessionId: string;

@@ -1,5 +1,5 @@
 import { FetchError, fetch } from "./api";
-import { getSessionState, updateSessionState } from "./sync-state";
+import { type Agent, getSessionState, updateSessionState } from "./sync-state";
 
 const APP_BASE_URL = "https://moon.page";
 
@@ -169,7 +169,7 @@ async function syncContentChunk({
 }
 
 export async function syncSession(
-	agent: "claude-code",
+	agent: Agent,
 	filePath: string,
 	content: string,
 	metadata: {
