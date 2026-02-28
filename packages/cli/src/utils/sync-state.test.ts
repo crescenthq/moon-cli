@@ -31,3 +31,15 @@ test("getSyncStateBySessionId returns null for non-existent session", async () =
 	const found = await getSyncStateBySessionId("claude-code", "non-existent");
 	expect(found).toBeNull();
 });
+
+test("sync state supports openclaw agent namespace", async () => {
+	await updateSessionState({
+		agent: "openclaw",
+		filePath: "/tmp/openclaw-session.jsonl",
+		sessionId: "openclaw-session-1",
+	});
+
+	const found = await getSyncStateBySessionId("openclaw", "openclaw-session-1");
+	expect(found).not.toBeNull();
+	expect(found?.agent).toBe("openclaw");
+});

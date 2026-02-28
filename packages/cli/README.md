@@ -1,6 +1,6 @@
 # moon
 
-Tool for sharing your coding agent (Claude Code) sessions with Moon.
+Tool for sharing your coding agent sessions with Moon (Claude Code and OpenClaw).
 
 ## Installation
 
@@ -26,6 +26,9 @@ moon share
 # Share a specific session
 moon share --sessionId abc123
 
+# Share OpenClaw sessions
+moon share --agent openclaw
+
 # Non-interactive with JSON output (for scripts)
 moon share --json
 ```
@@ -34,6 +37,7 @@ moon share --json
 
 | Option | Description |
 |--------|-------------|
+| `--agent <name>` | Session source agent (`claude-code` or `openclaw`) |
 | `--sessionId <id>` | Share a specific session |
 | `--title <title>` | Custom title |
 | `--visibility <v>` | `public`, `unlisted`, or `private` |

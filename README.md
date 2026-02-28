@@ -1,6 +1,6 @@
 # Moon
 
-Share your Claude Code sessions with a link.
+Share your coding agent sessions with a link (Claude Code and OpenClaw).
 
 Moon syncs your Claude Code conversations and gives you a shareable URL. As you work, sessions stay in sync automatically.
 

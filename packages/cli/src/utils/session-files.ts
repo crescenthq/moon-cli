@@ -1,6 +1,6 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 export type SessionFile = {
 	path: string;
@@ -11,6 +11,7 @@ export type SessionFile = {
 };
 
 const CLAUDE_CODE_PROJECTS_PATH = join(homedir(), ".claude", "projects");
+const OPENCLAW_AGENTS_PATH = join(homedir(), ".openclaw", "agents");
 
 export type SessionFileWithSummary = SessionFile & {
 	title: string;
@@ -83,6 +84,71 @@ export async function findClaudeCodeSessions(): Promise<
 	}
 
 	// Sort by modification time, most recent first
+	return sessions.sort(
+		(a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime(),
+	);
+}
+
+/**
+ * Discover OpenClaw sessions from ~/.openclaw/agents/<agent>/sessions/
+ * Returns sessions sorted by modification time (most recent first)
+ */
+export async function findOpenClawSessions(): Promise<
+	SessionFileWithSummary[]
+> {
+	const sessions: SessionFileWithSummary[] = [];
+
+	try {
+		const agentDirs = await readdir(OPENCLAW_AGENTS_PATH);
+
+		for (const agentDir of agentDirs) {
+			const sessionsDir = join(OPENCLAW_AGENTS_PATH, agentDir, "sessions");
+			let files: string[];
+
+			try {
+				files = await readdir(sessionsDir);
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+				throw error;
+			}
+
+			for (const file of files) {
+				if (!file.endsWith(".jsonl")) continue;
+
+				const filePath = join(sessionsDir, file);
+				const fileStat = await stat(filePath);
+				if (!fileStat.isFile() || fileStat.size === 0) continue;
+
+				const content = await readSessionContent(filePath);
+				const { title, preview, messageCount, agentVersion, gitBranch, cwd } =
+					extractOpenClawSessionMetadata(content);
+
+				const cwdName = cwd ? basename(cwd) : "unknown-project";
+				const projectName = `openclaw/${agentDir}/${cwdName}`;
+
+				sessions.push({
+					path: filePath,
+					sessionId: file.replace(".jsonl", ""),
+					projectName,
+					modifiedAt: fileStat.mtime,
+					size: fileStat.size,
+					title,
+					preview,
+					messageCount,
+					content,
+					agentVersion,
+					gitBranch,
+					cwd,
+				});
+			}
+		}
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+			return [];
+		}
+		throw error;
+	}
+
 	return sessions.sort(
 		(a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime(),
 	);
@@ -289,6 +355,80 @@ export function extractSessionMetadata(content: string): SessionMetadata {
 		messageCount,
 		agentVersion,
 		gitBranch,
+		cwd,
+	};
+}
+
+function extractOpenClawSessionMetadata(content: string): SessionMetadata {
+	const lines = content.trim().split("\n");
+	type OpenClawEntry = {
+		type?: string;
+		version?: number | string;
+		modelId?: string;
+		cwd?: string;
+		message?: {
+			role?: "user" | "assistant" | string;
+			content?: unknown;
+		};
+	};
+
+	const candidates: Array<{ text: string; score: number; source: string }> = [];
+	let messageCount = 0;
+	let agentVersion: string | undefined;
+	let cwd: string | undefined;
+
+	for (const line of lines) {
+		let entry: OpenClawEntry;
+		try {
+			entry = JSON.parse(line);
+		} catch {
+			continue;
+		}
+
+		if (!cwd && entry.type === "session" && typeof entry.cwd === "string") {
+			cwd = entry.cwd;
+		}
+
+		if (!agentVersion && entry.type === "model_change" && entry.modelId) {
+			agentVersion = entry.modelId;
+		}
+
+		if (
+			entry.type === "message" &&
+			(entry.message?.role === "user" || entry.message?.role === "assistant")
+		) {
+			messageCount++;
+
+			if (entry.message.role === "user" && entry.message.content) {
+				const text = extractTextFromContent(entry.message.content);
+				if (text) {
+					candidates.push({
+						text,
+						score: scoreCandidate(text),
+						source: "user",
+					});
+				}
+			}
+		}
+	}
+
+	candidates.sort((a, b) => b.score - a.score);
+	const best = candidates[0];
+	if (!best) {
+		return {
+			title: "No content available",
+			preview: "No preview available",
+			messageCount,
+			agentVersion,
+			cwd,
+		};
+	}
+
+	return {
+		title: truncateCleanly(best.text, 70),
+		preview: truncateCleanly(best.text, 120),
+		messageCount,
+		agentVersion,
 		cwd,
 	};
 }
