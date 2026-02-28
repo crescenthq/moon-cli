@@ -59,12 +59,14 @@ async function doFetch<T>(path: string, options: RequestOptions): Promise<T> {
 
 	// Use URL as-is if absolute, otherwise prepend API_URL
 	const url = isAbsoluteUrl(path) ? path : `${API_URL}${path}`;
+	const sendRequest = () =>
+		globalThis.fetch(url, {
+			method,
+			headers: requestHeaders,
+			body: requestBody,
+		});
 
-	const response = await globalThis.fetch(url, {
-		method,
-		headers: requestHeaders,
-		body: requestBody,
-	});
+	const response = await sendRequest();
 
 	// Handle 401 Unauthorized - try to refresh token first (only for Moon API)
 	if (response.status === 401 && !isAbsoluteUrl(path)) {
@@ -80,14 +82,42 @@ async function doFetch<T>(path: string, options: RequestOptions): Promise<T> {
 
 				// Retry the request with the new token
 				requestHeaders.Authorization = `Bearer ${refreshedAuth.accessToken}`;
-				const retryResponse = await globalThis.fetch(url, {
-					method,
-					headers: requestHeaders,
-					body: requestBody,
-				});
+				const retryResponse = await sendRequest();
 
 				if (retryResponse.ok) {
 					return retryResponse.json() as Promise<T>;
+				}
+
+				if (retryResponse.status !== 401) {
+					const errorBody = await retryResponse.text();
+					throw new FetchError(
+						`Request failed: ${retryResponse.status}`,
+						retryResponse.status,
+						errorBody,
+					);
+				}
+			} else {
+				// Another process may have already refreshed with a rotated token.
+				const latestAuth = await authStore.get();
+				if (
+					latestAuth?.refreshToken &&
+					latestAuth.refreshToken !== auth.refreshToken
+				) {
+					requestHeaders.Authorization = `Bearer ${latestAuth.accessToken}`;
+					const retryResponse = await sendRequest();
+
+					if (retryResponse.ok) {
+						return retryResponse.json() as Promise<T>;
+					}
+
+					if (retryResponse.status !== 401) {
+						const errorBody = await retryResponse.text();
+						throw new FetchError(
+							`Request failed: ${retryResponse.status}`,
+							retryResponse.status,
+							errorBody,
+						);
+					}
 				}
 			}
 		}

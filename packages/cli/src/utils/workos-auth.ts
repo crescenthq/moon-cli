@@ -155,7 +155,7 @@ function sleep(ms: number): Promise<void> {
 
 export type RefreshTokenResponse = {
 	access_token: string;
-	refresh_token: string;
+	refresh_token?: string;
 };
 
 export async function refreshAccessToken(
@@ -176,7 +176,7 @@ export async function refreshAccessToken(
 
 		return {
 			accessToken: data.access_token,
-			refreshToken: data.refresh_token,
+			refreshToken: data.refresh_token ?? refreshToken,
 			user: data.user
 				? {
 						id: data.user.id,
