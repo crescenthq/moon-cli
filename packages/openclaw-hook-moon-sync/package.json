@@ -1,0 +1,12 @@
+{
+	"name": "@crescenthq/openclaw-hook-moon-sync",
+	"version": "0.0.1",
+	"description": "OpenClaw hook pack for Moon auto-sync",
+	"type": "module",
+	"license": "MIT",
+	"openclaw": {
+		"hooks": [
+			"moon-openclaw-sync"
+		]
+	}
+}

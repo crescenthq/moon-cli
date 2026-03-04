@@ -39,6 +39,13 @@ moon config set sharing.mode auto
 
 Type `/share` in Claude Code to manually share the current session.
 
+## OpenClaw Integration
+
+OpenClaw auto-sync uses a separate hook package:
+[`@crescenthq/openclaw-hook-moon-sync`](../openclaw-hook-moon-sync/README.md).
+
+This README only documents Claude Code plugin behavior.
+
 ## Development
 
 ```bash

@@ -25,6 +25,7 @@ npx @crescenthq/moon share
 | Package                                           | Description                              |
 | ------------------------------------------------- | ---------------------------------------- |
 | [@crescenthq/moon](packages/cli)                  | Command-line tool for sharing sessions   |
+| [@crescenthq/openclaw-hook-moon-sync](packages/openclaw-hook-moon-sync) | OpenClaw hook pack for automatic Moon sync |
 | [plugin-claude-code](packages/claude-code-plugin) | Claude Code plugin for automatic syncing |
 
 ## License
