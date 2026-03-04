@@ -18,7 +18,7 @@
     },
     "packages/cli": {
       "name": "@crescenthq/moon",
-      "version": "0.0.2",
+      "version": "0.0.4",
       "bin": {
         "moon": "./dist/cli.js",
       },
@@ -35,6 +35,10 @@
       "peerDependencies": {
         "typescript": "^5",
       },
+    },
+    "packages/openclaw-hook-moon-sync": {
+      "name": "@crescenthq/openclaw-hook-moon-sync",
+      "version": "0.0.1",
     },
     "packages/shared": {
       "name": "shared",
@@ -128,6 +132,8 @@
     "@clack/prompts": ["@clack/prompts@0.11.0", "", { "dependencies": { "@clack/core": "0.5.0", "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-pMN5FcrEw9hUkZA4f+zLlzivQSeQf5dRGJjSUbvVYDLvpKCdQx5OaknvKzgbtXOizhP+SJJJjqEbOe55uKKfAw=="],
 
     "@crescenthq/moon": ["@crescenthq/moon@workspace:packages/cli"],
+
+    "@crescenthq/openclaw-hook-moon-sync": ["@crescenthq/openclaw-hook-moon-sync@workspace:packages/openclaw-hook-moon-sync"],
 
     "@crescenthq/plugin-claude-code": ["@crescenthq/plugin-claude-code@workspace:packages/claude-code-plugin"],
 
